@@ -82,6 +82,7 @@ PR には以下を含める。
 
 - 実行状態の正本は GitHub に置く
 - Notion 側は一覧性と人間向け集約を主目的にする
+- 詳細な同期手順は `docs/github-notion-sync-policy.md` を参照する
 
 ## Codex Working Rules
 
@@ -102,6 +103,7 @@ PR には以下を含める。
 
 - `docs/github-labels.md`
 - `docs/github-issue-pr-playbook.md`
+- `docs/github-notion-sync-policy.md`
 - `docs/source-of-truth-policy.md`
 - `.github/ISSUE_TEMPLATE/task.md`
 - `.github/pull_request_template.md`
