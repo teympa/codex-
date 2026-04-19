@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Phase 1 Task Reference
+    url: ../docs/phase1-issues.md
+    about: Phase 1 の起票文面はローカルの phase1-issues.md を参照する
