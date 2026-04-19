@@ -78,6 +78,11 @@ PR には以下を含める。
 - PR 作成時は Notion 上のステータスを `Review` にする
 - PR マージ時は Notion 上のステータスを `Done` にする
 
+補足:
+
+- 実行状態の正本は GitHub に置く
+- Notion 側は一覧性と人間向け集約を主目的にする
+
 ## Codex Working Rules
 
 - 大きな作業は先に Issue 単位へ分解する
@@ -97,6 +102,7 @@ PR には以下を含める。
 
 - `docs/github-labels.md`
 - `docs/github-issue-pr-playbook.md`
+- `docs/source-of-truth-policy.md`
 - `.github/ISSUE_TEMPLATE/task.md`
 - `.github/pull_request_template.md`
 

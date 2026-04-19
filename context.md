@@ -29,6 +29,7 @@
 - `docs/phase1-issue-creation-checklist.md`
 - `docs/context-workflow.md`
 - `docs/context-template.md`
+- `docs/source-of-truth-policy.md`
 
 ## Source Of Truth
 
@@ -47,10 +48,10 @@
 
 ## Immediate Next Steps
 
-1. `context.md` の運用ルールをこのまま継続運用に乗せる
-2. Notion の 5 DB を実際に反映する
-3. Notion と GitHub の正本ルールを最終確定する
-4. Phase 2 に向けた Discord 操作設計の前提を整理する
+1. Notion の 5 DB を実際に反映する
+2. 正本ルールを運用の中で崩さないように各更新時に確認する
+3. Phase 2 に向けた Discord 操作設計の前提を整理する
+4. Notion と GitHub の同期対象を必要最小限に絞る
 
 ## Decision Log
 
@@ -61,6 +62,7 @@
 - 2026-04-20: P1-02 では GitHub のテンプレートに加えて、ラベル体系と日常運用ルールもローカルで先に固める
 - 2026-04-20: P1-05 では Phase 1 の Issue を起票しやすいように、バックログ、起票順、初期状態をローカルで先に固定する
 - 2026-04-20: Issue #3 に対応して、`context.md` の更新タイミングと最小更新項目をローカル文書で固定する
+- 2026-04-20: Issue #4 に対応して、長期人間向け情報は Notion、実装履歴は GitHub、短期文脈は `context.md` を正本とする方針を固定する
 
 ## References
 
@@ -75,9 +77,11 @@
 - `docs/phase1-issue-creation-checklist.md`
 - `docs/context-workflow.md`
 - `docs/context-template.md`
+- `docs/source-of-truth-policy.md`
 
 ## Handoff
 
 - 次は Notion 上に 5 DB を手動または MCP 経由で実際に作る
+- 情報を更新するときは、先に正本がどこかを確認する
 - セッションを閉じる前に `Immediate Next Steps` と `Handoff` を毎回更新する
 - Discord 操作は Phase 1 の運用ルールが固まってから実装に入る
