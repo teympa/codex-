@@ -1,0 +1,19 @@
+{
+  "name": "codex-discord-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal Discord bridge for sending instructions to Codex.",
+  "main": "src/bot.js",
+  "scripts": {
+    "dev": "node src/bot.js",
+    "start": "node src/bot.js",
+    "register:commands": "node src/register-commands.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0"
+  }
+}

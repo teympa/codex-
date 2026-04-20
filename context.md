@@ -31,6 +31,8 @@
 - `docs/context-template.md`
 - `docs/source-of-truth-policy.md`
 - `docs/github-notion-sync-policy.md`
+- `docs/discord-ops-design.md`
+- `docs/discord-safety-and-flow.md`
 
 ## Source Of Truth
 
@@ -49,8 +51,8 @@
 
 ## Immediate Next Steps
 
-1. GitHub と Notion の同期は `Tasks` を中心に最小運用で回す
-2. Phase 2 に向けた Discord 操作設計の前提を整理する
+1. Discord の MVP を `Codexへの指示窓口` として設計を固める
+2. Discord の確認必須操作を明文化する
 3. 自動同期が必要なトリガーを後で限定的に導入する
 4. 仕様判断は `Specs` または `Notes` に要点だけ残す
 
@@ -65,6 +67,7 @@
 - 2026-04-20: Issue #3 に対応して、`context.md` の更新タイミングと最小更新項目をローカル文書で固定する
 - 2026-04-20: Issue #4 に対応して、長期人間向け情報は Notion、実装履歴は GitHub、短期文脈は `context.md` を正本とする方針を固定する
 - 2026-04-20: GitHub と Notion の同期は `Tasks` を中心に、実行状態だけを最小限同期する方針を固定する
+- 2026-04-20: Phase 2 は Discord を Codex への指示窓口として実装し、危険操作は確認必須にする方針で進める
 
 ## References
 
@@ -81,11 +84,14 @@
 - `docs/context-template.md`
 - `docs/source-of-truth-policy.md`
 - `docs/github-notion-sync-policy.md`
+- `docs/discord-ops-design.md`
+- `docs/discord-safety-and-flow.md`
 
 ## Handoff
 
 - 次は Notion 上に 5 DB を手動または MCP 経由で実際に作る
 - 情報を更新するときは、先に正本がどこかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
+- Discord ではまず Codex への安全な指示窓口を作る
 - セッションを閉じる前に `Immediate Next Steps` と `Handoff` を毎回更新する
 - Discord 操作は Phase 1 の運用ルールが固まってから実装に入る
