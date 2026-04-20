@@ -16,6 +16,28 @@
 - Notion と GitHub の運用ルールを決める
 - Codex が毎回迷わず更新できるローカル文書を整える
 
+## Execution Status
+
+### Completed Items
+
+- Phase 1 の運用前提として、Notion DB 設計、GitHub 運用文書、`context.md` 運用文書、正本ルール、GitHub-Notion 同期方針のローカル草案を一通り作成済み
+- Phase 1 を GitHub Issue 単位で追跡しやすいように、バックログ、起票チェックリスト、Issue/PR プレイブック、ラベル設計をローカル文書として整理済み
+- Phase 2 着手前提として、Discord を Codex への指示窓口にする方向性と安全確認の初期設計をローカル文書に整理済み
+- Discord Bot に実行ログ保存と `/codex-status` の GitHub / Notion 集約を追加済み
+- Discord Bot に guild / channel / user の allowlist ベースのアクセス制御を追加済み
+- Discord Bot の確認待ちアクションを `runtime/pending-confirmations.json` に永続化済み
+
+### Incomplete Items
+
+- Notion 上の `Projects` / `Tasks` / `Specs` / `Notes` / `Knowledge` を実環境にまだ作成していない
+- GitHub 上で Phase 1 の主要 Issue とテンプレート運用が実際の運用状態まで揃っているか未確認
+- GitHub と Notion の同期を、`Tasks` 中心の最小運用として実地で回した結果がまだない
+- Discord 側の設計は方針段階で、MVP の操作フローと確認必須操作の具体化は未完了
+
+### Next Priority
+
+- GitHub / Notion 同期の半自動化に進む
+
 ## Active Deliverables
 
 - `codex-roadmap.md`
@@ -51,10 +73,10 @@
 
 ## Immediate Next Steps
 
-1. Discord の MVP を `Codexへの指示窓口` として設計を固める
-2. Discord の確認必須操作を明文化する
-3. 自動同期が必要なトリガーを後で限定的に導入する
-4. 仕様判断は `Specs` または `Notes` に要点だけ残す
+1. GitHub / Notion 同期を `Tasks` の最小更新から半自動化する
+2. allowlist の実運用値を `.env` に反映し、運用チャンネルを固定する
+3. 必要なら `/codex-status` の出力をスマホ向けにさらに短くする
+4. 確認待ち一覧を見られる管理コマンドを追加する
 
 ## Decision Log
 
@@ -68,6 +90,8 @@
 - 2026-04-20: Issue #4 に対応して、長期人間向け情報は Notion、実装履歴は GitHub、短期文脈は `context.md` を正本とする方針を固定する
 - 2026-04-20: GitHub と Notion の同期は `Tasks` を中心に、実行状態だけを最小限同期する方針を固定する
 - 2026-04-20: Phase 2 は Discord を Codex への指示窓口として実装し、危険操作は確認必須にする方針で進める
+- 2026-04-21: Discord Bot は bypass 運用を前提に、guild / channel / user の allowlist で利用範囲を絞る
+- 2026-04-21: Discord Bot の確認待ち token は 24 時間保持し、再起動後も復元する
 
 ## References
 
@@ -89,9 +113,10 @@
 
 ## Handoff
 
-- 次は Notion 上に 5 DB を手動または MCP 経由で実際に作る
-- 情報を更新するときは、先に正本がどこかを確認する
+- Discord Bot は allowlist ベースのアクセス制御まで入った
+- Discord Bot は確認待ちアクション永続化まで入った
+- 次回は `Tasks` 同期自動化か status 要約改善から始める
+- 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
-- Discord ではまず Codex への安全な指示窓口を作る
-- セッションを閉じる前に `Immediate Next Steps` と `Handoff` を毎回更新する
-- Discord 操作は Phase 1 の運用ルールが固まってから実装に入る
+- Discord 実装は安全面の基礎が入ったので、次は運用自動化に寄せる
+- セッションを閉じる前に `Execution Status`、`Immediate Next Steps`、`Handoff` を毎回更新する

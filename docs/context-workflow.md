@@ -9,7 +9,8 @@
 `context.md` には以下だけを残す。
 
 - 今の目的
-- 直近の優先事項
+- 完了済みと未完了の実務状態
+- 次に着手すべき 1 件
 - 次にやること
 - 重要な判断
 - 参照すべきローカル文書
@@ -30,6 +31,7 @@
 毎回少なくとも以下を見直す。
 
 - `Current Focus`
+- `Execution Status`
 - `Active Deliverables`
 - `Immediate Next Steps`
 - `Decision Log`
@@ -38,16 +40,19 @@
 ## Writing Rules
 
 - 長文ではなく要点だけを書く
-- 次の1手が分かる表現にする
+- `Completed Items / Incomplete Items / Next Priority` で現状を切り分ける
+- `Next Priority` は 1 件に絞る
+- `Immediate Next Steps` は実行順が分かる表現にする
 - 履歴は `Decision Log` に短く残す
 - 参照先がある場合はローカル文書名を明記する
 
 ## Suggested Session Flow
 
 1. 作業開始時に `Current Focus` を確認する
-2. その日の主対象を `Immediate Next Steps` の先頭に寄せる
-3. 設計判断が出たら `Decision Log` に追記する
-4. 作業終了時に `Handoff` を更新する
+2. `Execution Status` で完了済み、未完了、次の 1 件を整理する
+3. その日の主対象を `Immediate Next Steps` の先頭に寄せる
+4. 設計判断が出たら `Decision Log` に追記する
+5. 作業終了時に `Handoff` を更新する
 
 ## Anti-Patterns
 
@@ -55,6 +60,7 @@
 
 - 会話ログをそのまま書く
 - 完了した詳細タスクを大量に残す
+- `Next Priority` に複数案件を並べる
 - Notion と二重管理する
 - 曖昧な文だけ残して次アクションを書かない
 

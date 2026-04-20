@@ -10,6 +10,7 @@ const {
   GatewayIntentBits,
   SlashCommandBuilder,
 } = require("discord.js");
+const { buildStatusSummary } = require("./status-summary");
 
 dotenv.config();
 
@@ -25,8 +26,39 @@ if (missingEnv.length > 0) {
 const CONTEXT_PATH = path.resolve(__dirname, "..", "context.md");
 const WORKSPACE_ROOT = path.resolve(__dirname, "..");
 const CODEX_BIN = process.platform === "win32" ? "codex.cmd" : "codex";
+const RUNTIME_DIR = path.resolve(__dirname, "..", "runtime");
+const COMMAND_LOG_PATH = path.join(RUNTIME_DIR, "discord-command-log.jsonl");
+const PENDING_CONFIRMATIONS_PATH = path.join(
+  RUNTIME_DIR,
+  "pending-confirmations.json"
+);
 const pendingConfirmations = new Map();
 const MAX_DISCORD_MESSAGE = 1900;
+const PENDING_CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
+const REPLY_EPHEMERAL = String(
+  process.env.DISCORD_REPLY_EPHEMERAL ?? "true"
+).toLowerCase() !== "false";
+const DEFAULT_EXEC_MODE = String(
+  process.env.DISCORD_CODEX_EXEC_MODE ?? "read-only"
+).toLowerCase();
+const ALLOWED_GUILD_IDS = parseIdSet(
+  process.env.DISCORD_ALLOWED_GUILD_IDS ?? process.env.DISCORD_GUILD_ID
+);
+const ALLOWED_CHANNEL_IDS = parseIdSet(process.env.DISCORD_ALLOWED_CHANNEL_IDS);
+const ALLOWED_USER_IDS = parseIdSet(process.env.DISCORD_ALLOWED_USER_IDS);
+
+function parseIdSet(rawValue) {
+  if (!rawValue) {
+    return new Set();
+  }
+
+  return new Set(
+    rawValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+}
 
 function readContextPreview() {
   try {
@@ -38,6 +70,90 @@ function readContextPreview() {
     return lines.join("\n");
   } catch (error) {
     return "context.md could not be read.";
+  }
+}
+
+function ensureRuntimeDir() {
+  if (!fs.existsSync(RUNTIME_DIR)) {
+    fs.mkdirSync(RUNTIME_DIR, { recursive: true });
+  }
+}
+
+function appendCommandLog(entry) {
+  try {
+    ensureRuntimeDir();
+    fs.appendFileSync(
+      COMMAND_LOG_PATH,
+      `${JSON.stringify({ timestamp: new Date().toISOString(), ...entry })}\n`,
+      "utf8"
+    );
+  } catch (error) {
+    console.error("Failed to write Discord command log", error);
+  }
+}
+
+function loadPendingConfirmations() {
+  try {
+    ensureRuntimeDir();
+
+    if (!fs.existsSync(PENDING_CONFIRMATIONS_PATH)) {
+      return;
+    }
+
+    const raw = fs.readFileSync(PENDING_CONFIRMATIONS_PATH, "utf8");
+    if (!raw.trim()) {
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+    const now = Date.now();
+
+    for (const [token, pending] of Object.entries(parsed)) {
+      if (
+        pending &&
+        pending.instruction &&
+        pending.createdAt &&
+        now - pending.createdAt < PENDING_CONFIRMATION_TTL_MS
+      ) {
+        pendingConfirmations.set(token, pending);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load pending confirmations", error);
+  }
+}
+
+function savePendingConfirmations() {
+  try {
+    ensureRuntimeDir();
+    const serialized = Object.fromEntries(pendingConfirmations.entries());
+    fs.writeFileSync(
+      PENDING_CONFIRMATIONS_PATH,
+      `${JSON.stringify(serialized, null, 2)}\n`,
+      "utf8"
+    );
+  } catch (error) {
+    console.error("Failed to save pending confirmations", error);
+  }
+}
+
+function pruneExpiredConfirmations() {
+  const now = Date.now();
+  let removed = 0;
+
+  for (const [token, pending] of pendingConfirmations.entries()) {
+    if (!pending?.createdAt || now - pending.createdAt >= PENDING_CONFIRMATION_TTL_MS) {
+      pendingConfirmations.delete(token);
+      removed += 1;
+    }
+  }
+
+  if (removed > 0) {
+    savePendingConfirmations();
+    appendCommandLog({
+      event: "confirmation_pruned",
+      removed,
+    });
   }
 }
 
@@ -53,6 +169,44 @@ function normalizeInstruction(text) {
   return text.trim();
 }
 
+function validateAccess(interaction) {
+  const failures = [];
+
+  if (
+    ALLOWED_GUILD_IDS.size > 0 &&
+    (!interaction.guildId || !ALLOWED_GUILD_IDS.has(interaction.guildId))
+  ) {
+    failures.push("guild");
+  }
+
+  if (
+    ALLOWED_CHANNEL_IDS.size > 0 &&
+    (!interaction.channelId || !ALLOWED_CHANNEL_IDS.has(interaction.channelId))
+  ) {
+    failures.push("channel");
+  }
+
+  if (
+    ALLOWED_USER_IDS.size > 0 &&
+    (!interaction.user?.id || !ALLOWED_USER_IDS.has(interaction.user.id))
+  ) {
+    failures.push("user");
+  }
+
+  return {
+    allowed: failures.length === 0,
+    failures,
+  };
+}
+
+function buildAccessDeniedReply() {
+  return [
+    "この Bot は現在この場所またはユーザーでは使えません。",
+    "",
+    "許可された Discord サーバー / チャンネル / ユーザー設定を確認してください。",
+  ].join("\n");
+}
+
 function needsConfirmation(instruction) {
   const riskyPatterns = [
     /\bcommit\b/i,
@@ -65,17 +219,38 @@ function needsConfirmation(instruction) {
     /\bcreate file\b/i,
     /\bupdate\b/i,
     /\binstall\b/i,
+    /更新/,
+    /修正/,
+    /変更/,
+    /編集/,
+    /作成/,
+    /追加/,
+    /削除/,
+    /書き換/,
+    /保存/,
+    /反映/,
+    /実装/,
+    /インストール/,
   ];
 
   return riskyPatterns.some((pattern) => pattern.test(instruction));
 }
 
-function createPendingConfirmation(instruction, userTag) {
+function createPendingConfirmation(instruction, user) {
   const token = crypto.randomBytes(3).toString("hex");
   pendingConfirmations.set(token, {
     instruction,
     createdAt: Date.now(),
-    userTag,
+    userId: user.id,
+    userTag: user.tag,
+  });
+  savePendingConfirmations();
+  appendCommandLog({
+    event: "confirmation_created",
+    token,
+    userId: user.id,
+    userTag: user.tag,
+    instruction,
   });
   return token;
 }
@@ -91,6 +266,10 @@ function buildConfirmationReply(token, instruction) {
   ].join("\n");
 }
 
+function buildConfirmationRejectedReply() {
+  return "この確認 token は発行された本人だけが承認できます。";
+}
+
 function runCodexExec(instruction, mode = "read-only") {
   const outputFile = path.join(
     os.tmpdir(),
@@ -99,7 +278,7 @@ function runCodexExec(instruction, mode = "read-only") {
 
   const args = [
     "exec",
-    instruction,
+    "-",
     "--skip-git-repo-check",
     "--output-last-message",
     outputFile,
@@ -110,7 +289,9 @@ function runCodexExec(instruction, mode = "read-only") {
   ];
 
   if (mode === "workspace-write") {
-    args.push("--full-auto");
+    args.push("--dangerously-bypass-approvals-and-sandbox");
+  } else if (mode === "bypass") {
+    args.push("--dangerously-bypass-approvals-and-sandbox");
   } else {
     args.push("--sandbox", "read-only");
   }
@@ -137,6 +318,9 @@ function runCodexExec(instruction, mode = "read-only") {
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
+
+    child.stdin.write(instruction);
+    child.stdin.end();
 
     child.on("error", (error) => {
       clearTimeout(timer);
@@ -178,12 +362,38 @@ function runCodexExec(instruction, mode = "read-only") {
 }
 
 async function handleCodexInstruction(interaction, instruction, mode = "read-only") {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  appendCommandLog({
+    event: "execution_started",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    mode,
+    instruction,
+  });
 
   try {
     const result = await runCodexExec(instruction, mode);
+    appendCommandLog({
+      event: "execution_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      mode,
+      instruction,
+      resultPreview: trimForDiscord(result),
+    });
     await interaction.editReply(trimForDiscord(result));
   } catch (error) {
+    appendCommandLog({
+      event: "execution_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      mode,
+      instruction,
+      error: error.message,
+    });
     await interaction.editReply(
       trimForDiscord(
         [
@@ -223,8 +433,11 @@ const commands = [
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once(Events.ClientReady, (readyClient) => {
+  loadPendingConfirmations();
+  pruneExpiredConfirmations();
   console.log(`Discord bot ready as ${readyClient.user.tag}`);
   console.log(`Commands defined: ${commands.map((c) => c.name).join(", ")}`);
+  console.log(`Pending confirmations restored: ${pendingConfirmations.size}`);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -232,50 +445,148 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "codex") {
-    const instruction = normalizeInstruction(
-      interaction.options.getString("instruction", true)
-    );
-
-    if (needsConfirmation(instruction)) {
-      const token = createPendingConfirmation(instruction, interaction.user.tag);
-      await interaction.reply({
-        content: buildConfirmationReply(token, instruction),
-        ephemeral: true,
-      });
-      return;
-    }
-
-    await handleCodexInstruction(interaction, instruction, "read-only");
-    return;
-  }
-
-  if (interaction.commandName === "codex-status") {
+  const access = validateAccess(interaction);
+  if (!access.allowed) {
+    appendCommandLog({
+      event: "access_denied",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      userId: interaction.user.id,
+      channelId: interaction.channelId,
+      guildId: interaction.guildId,
+      failures: access.failures,
+    });
     await interaction.reply({
-      content: [
-        "現在の `context.md` プレビューです。",
-        "```md",
-        readContextPreview(),
-        "```",
-      ].join("\n"),
+      content: buildAccessDeniedReply(),
       ephemeral: true,
     });
     return;
   }
 
+  if (interaction.commandName === "codex") {
+    pruneExpiredConfirmations();
+    const instruction = normalizeInstruction(
+      interaction.options.getString("instruction", true)
+    );
+    appendCommandLog({
+      event: "instruction_received",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      instruction,
+    });
+
+    if (needsConfirmation(instruction)) {
+      const token = createPendingConfirmation(instruction, interaction.user);
+      await interaction.reply({
+        content: buildConfirmationReply(token, instruction),
+        ephemeral: REPLY_EPHEMERAL,
+      });
+      return;
+    }
+
+    await handleCodexInstruction(interaction, instruction, DEFAULT_EXEC_MODE);
+    return;
+  }
+
+  if (interaction.commandName === "codex-status") {
+    await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+    appendCommandLog({
+      event: "status_requested",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+    });
+
+    try {
+      const summary = await buildStatusSummary();
+      appendCommandLog({
+        event: "status_succeeded",
+        commandName: interaction.commandName,
+        userTag: interaction.user.tag,
+        channelId: interaction.channelId,
+      });
+      await interaction.editReply(trimForDiscord(summary));
+    } catch (error) {
+      appendCommandLog({
+        event: "status_failed",
+        commandName: interaction.commandName,
+        userTag: interaction.user.tag,
+        channelId: interaction.channelId,
+        error: error.message,
+      });
+      await interaction.editReply(
+        trimForDiscord(
+          [
+            "ステータス集約でエラーが発生しました。",
+            "",
+            error.message,
+            "",
+            "fallback:",
+            "```md",
+            readContextPreview(),
+            "```",
+          ].join("\n")
+        )
+      );
+    }
+    return;
+  }
+
   if (interaction.commandName === "codex-confirm") {
+    pruneExpiredConfirmations();
     const target = interaction.options.getString("target") || "";
     const pending = pendingConfirmations.get(target);
+    appendCommandLog({
+      event: "confirmation_received",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      token: target,
+    });
 
     if (!pending) {
+      appendCommandLog({
+        event: "confirmation_missing",
+        commandName: interaction.commandName,
+        userTag: interaction.user.tag,
+        channelId: interaction.channelId,
+        token: target,
+      });
       await interaction.reply({
         content: "確認対象が見つかりませんでした。token を確認してください。",
+        ephemeral: REPLY_EPHEMERAL,
+      });
+      return;
+    }
+
+    if (pending.userId && pending.userId !== interaction.user.id) {
+      appendCommandLog({
+        event: "confirmation_rejected_user_mismatch",
+        commandName: interaction.commandName,
+        userTag: interaction.user.tag,
+        userId: interaction.user.id,
+        channelId: interaction.channelId,
+        token: target,
+        expectedUserId: pending.userId,
+      });
+      await interaction.reply({
+        content: buildConfirmationRejectedReply(),
         ephemeral: true,
       });
       return;
     }
 
     pendingConfirmations.delete(target);
+    savePendingConfirmations();
+    appendCommandLog({
+      event: "confirmation_accepted",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      token: target,
+      instruction: pending.instruction,
+    });
     await handleCodexInstruction(interaction, pending.instruction, "workspace-write");
   }
 });

@@ -1,0 +1,36 @@
+{
+  "github": {
+    "repository": "teympa/codex-",
+    "trackedIssues": [
+      {
+        "number": 1,
+        "title": "Notion DB 初期設計を確定する",
+        "notionTaskUrl": "https://www.notion.so/3473e42ea0a2817681d5fa69d5ecdb60"
+      },
+      {
+        "number": 2,
+        "title": "GitHub の Issue / PR 運用テンプレートを整備する",
+        "notionTaskUrl": "https://www.notion.so/3473e42ea0a281939495f016b27f710a"
+      },
+      {
+        "number": 3,
+        "title": "context.md の運用を開始する",
+        "notionTaskUrl": "https://www.notion.so/3473e42ea0a281e8ba1ced6488c7bf83"
+      },
+      {
+        "number": 4,
+        "title": "Notion / GitHub / context.md の正本ルールを確定する",
+        "notionTaskUrl": "https://www.notion.so/3473e42ea0a28190b388f16fa472bcf2"
+      },
+      {
+        "number": 5,
+        "title": "Phase 1 タスクを GitHub で追跡開始する",
+        "notionTaskUrl": "https://www.notion.so/3473e42ea0a28106a652f1b242b652a2"
+      }
+    ]
+  },
+  "notion": {
+    "tasksDatabaseUrl": "https://www.notion.so/c07cd409198d4161bc1b12567d5d34c5",
+    "projectsDatabaseUrl": "https://www.notion.so/c3b094ad96a648ca96734cecac9a96d4"
+  }
+}

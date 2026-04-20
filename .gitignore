@@ -13,3 +13,7 @@ coverage/
 
 .idea/
 .vscode/
+
+runtime/*.log
+runtime/*.jsonl
+runtime/*.json

@@ -14,6 +14,20 @@
 - いま進めている主対象
 - 直近で終わらせたいこと
 
+## Execution Status
+
+### Completed Items
+
+- すでに完了し、次回以降は前提として扱ってよいこと
+
+### Incomplete Items
+
+- 未着手または未完了で、まだ管理対象に残すこと
+
+### Next Priority
+
+- 次に着手すべき 1 件
+
 ## Active Deliverables
 
 - 現在の主要ファイル
@@ -30,8 +44,9 @@
 
 ## Immediate Next Steps
 
-1. 次にやること
-2. その次にやること
+1. 次の1手
+2. 直後の確認事項
+3. その次の着手候補
 
 ## Decision Log
 
@@ -54,6 +69,20 @@
 ## Current Focus
 
 - いまの主対象
+
+## Execution Status
+
+### Completed Items
+
+- 今回完了した前提
+
+### Incomplete Items
+
+- まだ残っている実務項目
+
+### Next Priority
+
+- 次に着手すべき 1 件
 
 ## Immediate Next Steps
 
