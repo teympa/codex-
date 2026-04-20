@@ -3,6 +3,24 @@
 以下は、4フェーズ案を `Codex` で実装しやすい単位に落としたロードマップです。  
 方針は `先に情報の置き場を固定 -> 入力経路を増やす -> 制作ワークフローを自動化 -> 外部公開へ広げる` です。
 
+## 現在地
+
+2026-04-21 時点では、以下まで進んでいます。
+
+- Phase 1 の基盤文書整備
+- GitHub Issue `#1` から `#5` の起票
+- `context.md` 運用開始
+- 正本ルールの固定
+- GitHub と Notion の同期方針固定
+- Notion の 5 DB 作成と初期データ投入
+- Discord Bot MVP 実装
+- `/codex` `/codex-status` `/codex-confirm` の実装
+- Discord 実行ログ保存
+- Discord allowlist ベースのアクセス制御
+- 確認待ちアクションの永続化
+
+次の優先タスクは `GitHub / Notion の Tasks 同期半自動化` です。
+
 ## Phase 1 基盤整備
 
 目的は、全作業の保存先と参照先を固定することです。
@@ -63,20 +81,24 @@
 
 ### 2. コマンド体系の実装
 
-- `/memo`
-- `/task`
-- `/schedule`
-- `/expense`
-- `/idea`
-- `/status`
+- `/codex`
+- `/codex-status`
+- `/codex-confirm`
+
+補足:
+
+- `/codex` は自然文で Codex に指示する入口
+- `/codex-status` は `context.md`、GitHub、Notion `Tasks` を集約して返す
+- `/codex-confirm` は変更系指示の確認待ち token を承認する
+- `/memo` `/task` `/schedule` などの専用コマンドは、必要なら次段階で追加する
 
 ### 3. バックエンド接続
 
-- DiscordからNotionへ書き込む
-- DiscordからGitHub Issueを起票する
-- スケジュール情報を保存する
-- 家計簿データを保存する
-- 実行履歴を残す
+- Discordから Codex 実行ランナーへ指示を渡す
+- `/codex-status` で GitHub 状態を返す
+- `/codex-status` で Notion `Tasks` 集計を返す
+- 実行履歴を JSONL で残す
+- 確認待ちアクションを再起動後も復元できるようにする
 
 ### 4. スマホ運用向け整備
 
@@ -84,14 +106,15 @@
 - 定型文を用意する
 - 誤操作防止の確認フローを入れる
 - 重要操作は承認制にする
+- 利用できる guild / channel / user を絞る
 
 ### 5. Phase 2 完了条件
 
-- スマホからメモ追加ができる
-- スマホからタスク登録ができる
-- スマホから予定登録ができる
-- スマホから支出記録ができる
+- スマホから Codex に自然文指示を出せる
+- 読み取り系と変更系を安全に振り分けられる
+- `/codex-status` で現在状況を確認できる
 - 実行ログを後から追える
+- 再起動後も確認待ちアクションを継続できる
 
 ## Phase 3 ゲーム開発ワークフロー
 
@@ -191,31 +214,59 @@
 2. GitHubテンプレ/ラベル整備
 3. `context.md` 整備
 4. Discord Bot最小版
-5. GitHub-Notion同期
-6. 企画書テンプレ自動生成
-7. ComfyUI連携
-8. Webダッシュボード
-9. note記事パイプライン
+5. Discord Bot の安全運用整備
+6. GitHub-Notion同期
+7. 企画書テンプレ自動生成
+8. ComfyUI連携
+9. Webダッシュボード
+10. note記事パイプライン
 
 ## 最初の4週間プラン
+
+当初の想定:
 
 - 1週目: Notion DB、GitHub運用、`context.md`
 - 2週目: Codex運用ルール、テンプレート、基本自動化
 - 3週目: Discord Bot最小版、メモ/タスク/予定登録
 - 4週目: GitHub-Notion同期、企画書自動生成の初版
 
+現状反映版:
+
+- 1週目: Notion DB設計、GitHub運用、`context.md`、正本ルール
+- 2週目: Notion 実環境構築、テンプレート、view、seed data
+- 3週目: Discord Bot最小版、`/codex` 系コマンド、Codex実行接続
+- 4週目: 実行ログ、`/codex-status` 集約、allowlist、確認待ち永続化
+
+次の実装候補:
+
+- GitHub / Notion `Tasks` 同期半自動化
+- `/codex-status` の要約改善
+- 管理用コマンドの追加
+- 企画書自動生成の初版
+
 ## Codexでの実装単位
 
 実際のタスクは、以下の粒度まで分けると進めやすいです。
 
+実装済み:
+
 - `docs/notion-schema.md` を作る
 - `docs/github-workflow.md` を作る
-- `context.md` の初版を作る
+- `context.md` の初版と運用文書を作る
 - Issue/PRテンプレを追加する
+- Notion の 5 DB を作る
 - Discord Botの雛形を作る
-- `/memo` `/task` `/schedule` `/expense` を実装する
-- Notion書き込み処理を実装する
-- GitHub Issue連携を実装する
+- `/codex` `/codex-status` `/codex-confirm` を実装する
+- `src/status-summary.js` で GitHub / Notion / `context.md` 集約を実装する
+- Discord 実行ログ保存を実装する
+- Discord allowlist 制御を実装する
+- 確認待ちアクション永続化を実装する
+
+未実装:
+
+- GitHub / Notion `Tasks` 同期の半自動化
+- Notion 書き込み処理の Discord 直結
+- GitHub Issue 連携の自動反映
 - 企画書テンプレ生成スクリプトを作る
 - ComfyUI連携スクリプトを作る
 - ダッシュボード初版を作る
