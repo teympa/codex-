@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "node src/bot.js",
     "start": "node src/bot.js",
-    "register:commands": "node src/register-commands.js"
+    "register:commands": "node src/register-commands.js",
+    "sync:tasks": "node src/sync-tasks.js",
+    "sync:tasks:dry": "node src/sync-tasks.js --dry-run"
   },
   "engines": {
     "node": ">=20"

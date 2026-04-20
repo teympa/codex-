@@ -26,6 +26,7 @@
 - Discord Bot に実行ログ保存と `/codex-status` の GitHub / Notion 集約を追加済み
 - Discord Bot に guild / channel / user の allowlist ベースのアクセス制御を追加済み
 - Discord Bot の確認待ちアクションを `runtime/pending-confirmations.json` に永続化済み
+- GitHub Issue から Notion `Tasks` への半自動同期スクリプトを追加済み
 
 ### Incomplete Items
 
@@ -36,7 +37,7 @@
 
 ### Next Priority
 
-- GitHub / Notion 同期の半自動化に進む
+- 管理用 Discord コマンド追加か、allowlist の実運用反映に進む
 
 ## Active Deliverables
 
@@ -73,10 +74,10 @@
 
 ## Immediate Next Steps
 
-1. GitHub / Notion 同期を `Tasks` の最小更新から半自動化する
-2. allowlist の実運用値を `.env` に反映し、運用チャンネルを固定する
-3. 必要なら `/codex-status` の出力をスマホ向けにさらに短くする
-4. 確認待ち一覧を見られる管理コマンドを追加する
+1. allowlist の実運用値を `.env` に反映し、運用チャンネルを固定する
+2. 確認待ち一覧を見られる管理コマンドを追加する
+3. `sync:tasks` の実運用手順を必要なら Discord 側へ組み込む
+4. `/codex-status` を必要に応じてさらに圧縮する
 
 ## Decision Log
 
@@ -92,6 +93,8 @@
 - 2026-04-20: Phase 2 は Discord を Codex への指示窓口として実装し、危険操作は確認必須にする方針で進める
 - 2026-04-21: Discord Bot は bypass 運用を前提に、guild / channel / user の allowlist で利用範囲を絞る
 - 2026-04-21: Discord Bot の確認待ち token は 24 時間保持し、再起動後も復元する
+- 2026-04-21: GitHub / Notion 同期はまず `sync:tasks` による GitHub から Notion への片方向半自動同期で始める
+- 2026-04-21: `/codex-status` はスマホ向けに、focus / next priority / next steps / GitHub要約 / Notion要約の短い形式を既定にする
 
 ## References
 
@@ -115,7 +118,9 @@
 
 - Discord Bot は allowlist ベースのアクセス制御まで入った
 - Discord Bot は確認待ちアクション永続化まで入った
-- 次回は `Tasks` 同期自動化か status 要約改善から始める
+- GitHub / Notion `Tasks` 同期の半自動化まで入った
+- `/codex-status` の短縮版要約まで入った
+- 次回は管理用コマンド追加か allowlist の実運用反映から始める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
 - Discord 実装は安全面の基礎が入ったので、次は運用自動化に寄せる

@@ -133,3 +133,31 @@ Notion にのみ残すもの:
 - GitHub で着手したら Notion `In Progress`
 - GitHub で完了したら Notion `Done`
 - 仕様判断は Notion に残す
+
+## Current Semi-Automation
+
+現在は `npm run sync:tasks` で、GitHub Issue から Notion `Tasks` への最小同期を回せる。
+
+同期する内容:
+
+- `Task`
+- `GitHub Issue Number`
+- `GitHub Issue URL`
+- `Status`
+- `Priority`
+- `Category`
+- `Source`
+- `Assignee`
+
+同期しない内容:
+
+- `Project` relation
+- `Due Date`
+- `Estimate`
+- 補足メモ
+
+安全方針:
+
+- relation や人間向け補足は壊さない
+- まずは GitHub -> Notion の片方向同期に限定する
+- 事前確認には `npm run sync:tasks:dry` を使う

@@ -32,8 +32,43 @@ function readContextSection(sectionTitle) {
     }
     return collected;
   } catch (error) {
-    return ["context.md could not be read."];
+    return [];
   }
+}
+
+function readSubsection(sectionTitle, subsectionTitle) {
+  const lines = readContextSection(sectionTitle);
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const header = `### ${subsectionTitle}`;
+  const startIndex = lines.findIndex((line) => line.trim() === header);
+
+  if (startIndex === -1) {
+    return [];
+  }
+
+  const collected = [];
+  for (let i = startIndex + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line.startsWith("### ")) {
+      break;
+    }
+    if (line.trim()) {
+      collected.push(line);
+    }
+  }
+
+  return collected;
+}
+
+function cleanBullet(line) {
+  return line.replace(/^[-*]\s*/, "").trim();
+}
+
+function cleanNumbered(line) {
+  return line.replace(/^\d+\.\s*/, "").trim();
 }
 
 async function fetchIssue(repository, number) {
@@ -49,12 +84,6 @@ async function fetchIssue(repository, number) {
   }
 
   return response.json();
-}
-
-function shortIssueLine(issue, tracked) {
-  const state = issue.state === "open" ? "open" : "closed";
-  const title = issue.title || tracked.title;
-  return `- #${issue.number} [${state}] ${title}`;
 }
 
 function notionHeaders() {
@@ -102,39 +131,6 @@ function countTasksByStatus(results) {
   return counts;
 }
 
-async function buildNotionTaskSummary(sources) {
-  if (!process.env.NOTION_API_TOKEN) {
-    return [
-      "**Notion**",
-      "- live status: disabled (set NOTION_API_TOKEN to enable)",
-      `- Tasks DB: ${sources.notion.tasksDatabaseUrl}`,
-      `- Projects DB: ${sources.notion.projectsDatabaseUrl}`,
-      ...sources.github.trackedIssues.map(
-        (tracked) => `- Task link for #${tracked.number}: ${tracked.notionTaskUrl}`
-      ),
-    ];
-  }
-
-  const taskDatabaseId = extractIdFromNotionUrl(sources.notion.tasksDatabaseUrl);
-  const taskQuery = await queryNotionDatabase(taskDatabaseId);
-  const counts = countTasksByStatus(taskQuery.results);
-  const sampleTasks = taskQuery.results.slice(0, 5).map((page) => {
-    const title = readTitleProperty(page.properties);
-    const status = page.properties.Status?.select?.name || "Unknown";
-    return `- ${title} [${status}]`;
-  });
-
-  return [
-    "**Notion**",
-    `- live status: enabled`,
-    `- total tasks: ${taskQuery.results.length}`,
-    ...Object.entries(counts).map(([status, count]) => `- ${status}: ${count}`),
-    `- Tasks DB: ${sources.notion.tasksDatabaseUrl}`,
-    `- Projects DB: ${sources.notion.projectsDatabaseUrl}`,
-    ...sampleTasks,
-  ];
-}
-
 function extractIdFromNotionUrl(url) {
   const match = url.match(/([a-f0-9]{32})/i);
   if (!match) {
@@ -143,35 +139,88 @@ function extractIdFromNotionUrl(url) {
   return match[1];
 }
 
+function formatIssueList(issueResults) {
+  const openIssues = issueResults.filter(({ issue }) => issue.state === "open");
+
+  if (openIssues.length === 0) {
+    return ["- open issues: 0", "- tracked backlog is fully closed"];
+  }
+
+  return [
+    `- open issues: ${openIssues.length}`,
+    ...openIssues.slice(0, 3).map(({ issue }) => `- #${issue.number} ${issue.title}`),
+  ];
+}
+
+async function buildNotionTaskSummary(sources) {
+  if (!process.env.NOTION_API_TOKEN) {
+    return {
+      lines: [
+        "- live status: disabled",
+        `- Tasks DB: ${sources.notion.tasksDatabaseUrl}`,
+      ],
+      spotlight: null,
+    };
+  }
+
+  const taskDatabaseId = extractIdFromNotionUrl(sources.notion.tasksDatabaseUrl);
+  const taskQuery = await queryNotionDatabase(taskDatabaseId);
+  const counts = countTasksByStatus(taskQuery.results);
+  const orderedStatuses = ["Inbox", "Planned", "In Progress", "Review", "Blocked", "Done"];
+  const countParts = orderedStatuses
+    .filter((status) => counts[status])
+    .map((status) => `${status}:${counts[status]}`);
+
+  const spotlightTask = taskQuery.results.find((page) => {
+    const status = page.properties.Status?.select?.name;
+    return status && status !== "Done";
+  });
+
+  return {
+    lines: [
+      "- live status: enabled",
+      `- total tasks: ${taskQuery.results.length}`,
+      `- status: ${countParts.join(" / ") || "none"}`,
+    ],
+    spotlight: spotlightTask
+      ? `${readTitleProperty(spotlightTask.properties)} [${
+          spotlightTask.properties.Status?.select?.name || "Unknown"
+        }]`
+      : null,
+  };
+}
+
 async function buildStatusSummary() {
   const sources = readJson(STATUS_SOURCES_PATH);
-  const currentFocus = readContextSection("Current Focus");
-  const nextSteps = readContextSection("Immediate Next Steps");
+  const currentFocus = readContextSection("Current Focus").map(cleanBullet);
+  const nextPriority = readSubsection("Execution Status", "Next Priority").map(cleanBullet);
+  const nextSteps = readContextSection("Immediate Next Steps").map(cleanNumbered);
   const issueResults = await Promise.all(
     sources.github.trackedIssues.map(async (tracked) => {
       const issue = await fetchIssue(sources.github.repository, tracked.number);
       return { tracked, issue };
     })
   );
-
-  const openIssues = issueResults.filter(({ issue }) => issue.state === "open");
-  const closedIssues = issueResults.filter(({ issue }) => issue.state !== "open");
-  const notionLines = await buildNotionTaskSummary(sources);
+  const notionSummary = await buildNotionTaskSummary(sources);
 
   const lines = [
-    "**Context**",
-    ...currentFocus.map((line) => line),
+    "**Status**",
+    `- focus: ${currentFocus[0] || "No current focus"}`,
+    `- next priority: ${nextPriority[0] || nextSteps[0] || "No next priority"}`,
     "",
-    "**Next Steps**",
-    ...nextSteps.map((line) => line),
+    "**Next**",
+    ...nextSteps.slice(0, 3).map((step) => `- ${step}`),
     "",
     `**GitHub (${sources.github.repository})**`,
-    `- open: ${openIssues.length}`,
-    `- closed: ${closedIssues.length}`,
-    ...issueResults.map(({ tracked, issue }) => shortIssueLine(issue, tracked)),
+    ...formatIssueList(issueResults),
     "",
-    ...notionLines,
+    "**Notion**",
+    ...notionSummary.lines,
   ];
+
+  if (notionSummary.spotlight) {
+    lines.push(`- spotlight: ${notionSummary.spotlight}`);
+  }
 
   return lines.join("\n");
 }

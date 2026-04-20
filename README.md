@@ -147,3 +147,16 @@ npm run dev
 - `/codex-status` の要約改善
 - 管理用 Discord コマンドの追加
 - Notion 運用テンプレートの強化
+
+## Task Sync
+
+GitHub Issue から Notion `Tasks` への最小同期を回せます。
+
+```bash
+npm run sync:tasks:dry
+npm run sync:tasks
+```
+
+詳細:
+
+- `docs/github-notion-sync-policy.md`
