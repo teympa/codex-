@@ -1,5 +1,8 @@
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
+const { spawn } = require("child_process");
 const dotenv = require("dotenv");
 const {
   Client,
@@ -20,6 +23,10 @@ if (missingEnv.length > 0) {
 }
 
 const CONTEXT_PATH = path.resolve(__dirname, "..", "context.md");
+const WORKSPACE_ROOT = path.resolve(__dirname, "..");
+const CODEX_BIN = process.platform === "win32" ? "codex.cmd" : "codex";
+const pendingConfirmations = new Map();
+const MAX_DISCORD_MESSAGE = 1900;
 
 function readContextPreview() {
   try {
@@ -34,15 +41,159 @@ function readContextPreview() {
   }
 }
 
-function buildCodexReply(instruction) {
+function trimForDiscord(text) {
+  if (text.length <= MAX_DISCORD_MESSAGE) {
+    return text;
+  }
+
+  return `${text.slice(0, MAX_DISCORD_MESSAGE - 40)}\n\n[truncated]`;
+}
+
+function normalizeInstruction(text) {
+  return text.trim();
+}
+
+function needsConfirmation(instruction) {
+  const riskyPatterns = [
+    /\bcommit\b/i,
+    /\bpush\b/i,
+    /\bdelete\b/i,
+    /\bremove\b/i,
+    /\bwrite\b/i,
+    /\bedit\b/i,
+    /\bmodify\b/i,
+    /\bcreate file\b/i,
+    /\bupdate\b/i,
+    /\binstall\b/i,
+  ];
+
+  return riskyPatterns.some((pattern) => pattern.test(instruction));
+}
+
+function createPendingConfirmation(instruction, userTag) {
+  const token = crypto.randomBytes(3).toString("hex");
+  pendingConfirmations.set(token, {
+    instruction,
+    createdAt: Date.now(),
+    userTag,
+  });
+  return token;
+}
+
+function buildConfirmationReply(token, instruction) {
   return [
-    "Codex への指示を受け取りました。",
+    "この指示は変更系の可能性があるため確認待ちにしました。",
     "",
-    `内容: ${instruction}`,
+    `token: ${token}`,
+    `instruction: ${instruction}`,
     "",
-    "この MVP では、Discord からの指示受付と結果返却の窓口だけを用意しています。",
-    "次段階で Codex 実行ランナーや Notion / GitHub 連携へつなぎます。"
+    `続ける場合は \`/codex-confirm target:${token}\` を実行してください。`,
   ].join("\n");
+}
+
+function runCodexExec(instruction, mode = "read-only") {
+  const outputFile = path.join(
+    os.tmpdir(),
+    `codex-discord-output-${Date.now()}-${crypto.randomBytes(3).toString("hex")}.txt`
+  );
+
+  const args = [
+    "exec",
+    instruction,
+    "--skip-git-repo-check",
+    "--output-last-message",
+    outputFile,
+    "--color",
+    "never",
+    "-C",
+    WORKSPACE_ROOT,
+  ];
+
+  if (mode === "workspace-write") {
+    args.push("--full-auto");
+  } else {
+    args.push("--sandbox", "read-only");
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(CODEX_BIN, args, {
+      cwd: WORKSPACE_ROOT,
+      shell: process.platform === "win32",
+    });
+
+    let stdout = "";
+    let stderr = "";
+    let finished = false;
+    const timer = setTimeout(() => {
+      if (!finished) {
+        child.kill();
+      }
+    }, 600000);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      finished = true;
+      let output = "";
+
+      try {
+        if (fs.existsSync(outputFile)) {
+          output = fs.readFileSync(outputFile, "utf8").trim();
+          fs.unlinkSync(outputFile);
+        }
+      } catch (fileError) {
+        output = output || "";
+      }
+
+      if (code !== 0) {
+        reject(
+          new Error(
+            [
+              `Codex execution failed.`,
+              stderr?.trim() || stdout?.trim() || `Exit code: ${code}`,
+              output ? `Partial output:\n${output}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n\n")
+          )
+        );
+        return;
+      }
+
+      resolve(output || stdout.trim() || "Codex completed without a message.");
+    });
+  });
+}
+
+async function handleCodexInstruction(interaction, instruction, mode = "read-only") {
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const result = await runCodexExec(instruction, mode);
+    await interaction.editReply(trimForDiscord(result));
+  } catch (error) {
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "Codex の実行でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
 }
 
 const commands = [
@@ -82,11 +233,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.commandName === "codex") {
-    const instruction = interaction.options.getString("instruction", true);
-    await interaction.reply({
-      content: buildCodexReply(instruction),
-      ephemeral: true,
-    });
+    const instruction = normalizeInstruction(
+      interaction.options.getString("instruction", true)
+    );
+
+    if (needsConfirmation(instruction)) {
+      const token = createPendingConfirmation(instruction, interaction.user.tag);
+      await interaction.reply({
+        content: buildConfirmationReply(token, instruction),
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await handleCodexInstruction(interaction, instruction, "read-only");
     return;
   }
 
@@ -104,15 +264,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.commandName === "codex-confirm") {
-    const target = interaction.options.getString("target") || "latest pending action";
-    await interaction.reply({
-      content: [
-        `確認指示を受け取りました: ${target}`,
-        "この MVP では confirm の受付だけを実装しています。",
-        "次段階で保留中アクション管理へつなぎます。",
-      ].join("\n"),
-      ephemeral: true,
-    });
+    const target = interaction.options.getString("target") || "";
+    const pending = pendingConfirmations.get(target);
+
+    if (!pending) {
+      await interaction.reply({
+        content: "確認対象が見つかりませんでした。token を確認してください。",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    pendingConfirmations.delete(target);
+    await handleCodexInstruction(interaction, pending.instruction, "workspace-write");
   }
 });
 

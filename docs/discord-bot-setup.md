@@ -40,13 +40,19 @@ npm run dev
 
 ## Current Behavior
 
-- `/codex`: 指示受付の確認を返す
+- `/codex`: 安全な指示は `codex exec` で実行する
 - `/codex-status`: `context.md` の先頭を返す
-- `/codex-confirm`: confirm の受付確認を返す
+- `/codex-confirm`: 確認待ちトークンを受けて変更系指示を実行する
+
+## Confirmation Behavior
+
+- 読み取り系や要約系の指示はそのまま `codex exec` に流す
+- `write` `edit` `update` `commit` `push` などを含む指示は確認待ちにする
+- 確認待ちになったら `/codex-confirm target:<token>` で続行する
 
 ## Next Implementation Steps
 
 1. `/codex` を Codex 実行ランナーへつなぐ
 2. 実行ログを保持する
-3. 確認待ちアクションの状態管理を追加する
+3. 確認待ちアクションの永続化を追加する
 4. Notion / GitHub 連携を安全に有効化する
