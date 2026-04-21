@@ -41,6 +41,15 @@ const commands = [
   new SlashCommandBuilder()
     .setName("codex-pending")
     .setDescription("確認待ちの一覧を確認する"),
+  new SlashCommandBuilder()
+    .setName("codex-sync-tasks")
+    .setDescription("GitHub と Notion Tasks の同期を実行する")
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("更新はせず確認だけ行う")
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 async function main() {

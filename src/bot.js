@@ -26,12 +26,14 @@ if (missingEnv.length > 0) {
 const CONTEXT_PATH = path.resolve(__dirname, "..", "context.md");
 const WORKSPACE_ROOT = path.resolve(__dirname, "..");
 const CODEX_BIN = process.platform === "win32" ? "codex.cmd" : "codex";
+const NODE_BIN = process.execPath;
 const RUNTIME_DIR = path.resolve(__dirname, "..", "runtime");
 const COMMAND_LOG_PATH = path.join(RUNTIME_DIR, "discord-command-log.jsonl");
 const PENDING_CONFIRMATIONS_PATH = path.join(
   RUNTIME_DIR,
   "pending-confirmations.json"
 );
+const SYNC_TASKS_SCRIPT_PATH = path.resolve(__dirname, "sync-tasks.js");
 const pendingConfirmations = new Map();
 const MAX_DISCORD_MESSAGE = 1900;
 const PENDING_CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -324,6 +326,98 @@ function buildPendingSummary() {
   return lines.join("\n");
 }
 
+function runNodeScript(scriptPath, args = []) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(NODE_BIN, [scriptPath, ...args], {
+      cwd: WORKSPACE_ROOT,
+      shell: false,
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(
+          new Error(
+            stderr.trim() || stdout.trim() || `Script execution failed with exit code ${code}`
+          )
+        );
+        return;
+      }
+
+      resolve((stdout || stderr).trim() || "Script completed without output.");
+    });
+  });
+}
+
+async function handleTaskSync(interaction, dryRun) {
+  await interaction.deferReply({ ephemeral: true });
+  appendCommandLog({
+    event: "task_sync_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    dryRun,
+  });
+
+  try {
+    const output = await runNodeScript(
+      SYNC_TASKS_SCRIPT_PATH,
+      dryRun ? ["--dry-run"] : []
+    );
+
+    appendCommandLog({
+      event: "task_sync_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      dryRun,
+      resultPreview: trimForDiscord(output),
+    });
+
+    const lines = [
+      dryRun ? "GitHub / Notion Tasks 同期の dry-run が完了しました。" : "GitHub / Notion Tasks 同期が完了しました。",
+      "",
+      "```",
+      trimForDiscord(output),
+      "```",
+    ];
+
+    await interaction.editReply(lines.join("\n"));
+  } catch (error) {
+    appendCommandLog({
+      event: "task_sync_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      dryRun,
+      error: error.message,
+    });
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "GitHub / Notion Tasks 同期でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
 function runCodexExec(instruction, mode = "read-only") {
   const outputFile = path.join(
     os.tmpdir(),
@@ -485,6 +579,15 @@ const commands = [
   new SlashCommandBuilder()
     .setName("codex-pending")
     .setDescription("確認待ちの一覧を確認する"),
+  new SlashCommandBuilder()
+    .setName("codex-sync-tasks")
+    .setDescription("GitHub と Notion Tasks の同期を実行する")
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("更新はせず確認だけ行う")
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -659,6 +762,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
       content: trimForDiscord(buildPendingSummary()),
       ephemeral: true,
     });
+    return;
+  }
+
+  if (interaction.commandName === "codex-sync-tasks") {
+    const dryRun = interaction.options.getBoolean("dry_run") ?? true;
+    await handleTaskSync(interaction, dryRun);
   }
 });
 

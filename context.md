@@ -37,7 +37,7 @@
 
 ### Next Priority
 
-- allowlist の実運用反映か、`sync:tasks` の Discord 実行導線追加に進む
+- allowlist の実運用反映か、実行ログ確認コマンド追加に進む
 
 ## Active Deliverables
 
@@ -75,8 +75,8 @@
 ## Immediate Next Steps
 
 1. allowlist の実運用値を `.env` に反映し、運用チャンネルを固定する
-2. `sync:tasks` の実運用手順を必要なら Discord 側へ組み込む
-3. 必要なら実行ログ確認コマンドを追加する
+2. 必要なら実行ログ確認コマンドを追加する
+3. `sync:tasks` の本実行をどのチャンネルで許可するか決める
 4. `/codex-status` を必要に応じてさらに圧縮する
 
 ## Actionable Tasks (2026-04-21)
@@ -116,6 +116,7 @@
 - 2026-04-21: GitHub / Notion 同期はまず `sync:tasks` による GitHub から Notion への片方向半自動同期で始める
 - 2026-04-21: `/codex-status` はスマホ向けに、focus / next priority / next steps / GitHub要約 / Notion要約の短い形式を既定にする
 - 2026-04-21: 確認待ち一覧は `/codex-pending` で Discord から確認できるようにする
+- 2026-04-21: `sync:tasks` は `/codex-sync-tasks` から dry-run 既定で実行できるようにする
 
 ## References
 
@@ -142,7 +143,8 @@
 - GitHub / Notion `Tasks` 同期の半自動化まで入った
 - `/codex-status` の短縮版要約まで入った
 - 確認待ち一覧を見られる `/codex-pending` まで入った
-- 次回は allowlist の実運用反映か `sync:tasks` の Discord 実行導線追加から始める
+- `sync:tasks` を Discord から実行する `/codex-sync-tasks` まで入った
+- 次回は allowlist の実運用反映か実行ログ確認コマンド追加から始める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
 - Discord 実装は安全面の基礎が入ったので、次は運用自動化に寄せる
