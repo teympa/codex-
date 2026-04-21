@@ -326,6 +326,96 @@ function buildPendingSummary() {
   return lines.join("\n");
 }
 
+function parseCommandLogLines(limit = 10) {
+  ensureRuntimeDir();
+
+  if (!fs.existsSync(COMMAND_LOG_PATH)) {
+    return [];
+  }
+
+  const lines = fs
+    .readFileSync(COMMAND_LOG_PATH, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .slice(-limit);
+
+  return lines
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+function formatLogTimestamp(timestamp) {
+  if (!timestamp) {
+    return "unknown";
+  }
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return timestamp;
+  }
+
+  return date.toLocaleString("ja-JP", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function shortenLogText(text, maxLength = 60) {
+  if (!text) {
+    return "";
+  }
+
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength - 3)}...`;
+}
+
+function formatCommandLogEntry(entry) {
+  const time = formatLogTimestamp(entry.timestamp);
+  const event = entry.event || "unknown";
+  const actor = entry.userTag || "system";
+  const details = [];
+
+  if (entry.commandName) {
+    details.push(entry.commandName);
+  }
+
+  if (entry.token) {
+    details.push(`token:${entry.token}`);
+  }
+
+  if (entry.dryRun !== undefined) {
+    details.push(entry.dryRun ? "dry-run" : "apply");
+  }
+
+  if (entry.error) {
+    details.push(shortenLogText(entry.error));
+  } else if (entry.instruction) {
+    details.push(shortenLogText(entry.instruction));
+  }
+
+  return `- ${time} | ${event} | ${actor}${details.length ? ` | ${details.join(" | ")}` : ""}`;
+}
+
+function buildCommandLogSummary(limit = 8) {
+  const entries = parseCommandLogLines(limit);
+
+  if (entries.length === 0) {
+    return "実行ログはまだありません。";
+  }
+
+  return [
+    `最新ログ: ${entries.length}件`,
+    ...entries.map((entry) => formatCommandLogEntry(entry)),
+  ].join("\n");
+}
+
 function runNodeScript(scriptPath, args = []) {
   return new Promise((resolve, reject) => {
     const child = spawn(NODE_BIN, [scriptPath, ...args], {
@@ -588,6 +678,17 @@ const commands = [
         .setDescription("更新はせず確認だけ行う")
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-log")
+    .setDescription("実行ログの最新数件を確認する")
+    .addIntegerOption((option) =>
+      option
+        .setName("limit")
+        .setDescription("表示件数。既定は 8")
+        .setMinValue(1)
+        .setMaxValue(20)
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -768,6 +869,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.commandName === "codex-sync-tasks") {
     const dryRun = interaction.options.getBoolean("dry_run") ?? true;
     await handleTaskSync(interaction, dryRun);
+    return;
+  }
+
+  if (interaction.commandName === "codex-log") {
+    const limit = interaction.options.getInteger("limit") ?? 8;
+    appendCommandLog({
+      event: "command_log_requested",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      limit,
+    });
+    await interaction.reply({
+      content: trimForDiscord(buildCommandLogSummary(limit)),
+      ephemeral: true,
+    });
   }
 });
 

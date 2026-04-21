@@ -50,6 +50,17 @@ const commands = [
         .setDescription("更新はせず確認だけ行う")
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-log")
+    .setDescription("実行ログの最新数件を確認する")
+    .addIntegerOption((option) =>
+      option
+        .setName("limit")
+        .setDescription("表示件数。既定は 8")
+        .setMinValue(1)
+        .setMaxValue(20)
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 async function main() {

@@ -89,6 +89,7 @@ Node.js 20 以上で、最小の Discord Bot を起動できます。
 - `/codex-confirm`
 - `/codex-pending`
 - `/codex-sync-tasks`
+- `/codex-log`
 
 セットアップ:
 
