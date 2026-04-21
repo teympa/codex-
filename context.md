@@ -79,6 +79,26 @@
 3. `sync:tasks` の実運用手順を必要なら Discord 側へ組み込む
 4. `/codex-status` を必要に応じてさらに圧縮する
 
+## Actionable Tasks (2026-04-21)
+
+### High Impact / Can Start Now
+
+1. allowlist の実運用値を `.env` に反映し、運用チャンネルを固定する
+2. 確認待ち一覧を見られる管理コマンドを追加する
+3. `sync:tasks` の実運用手順を Discord 側に組み込む案を確定する
+
+### Quick Wins (30-60 min)
+
+1. `/codex-status` の文面をさらに圧縮し、スマホ表示を確認する
+2. `docs/phase1-backlog.md` の GitHub Setup Checklist を実運用状態で更新する
+3. `docs/phase1-issue-creation-checklist.md` に沿って未起票 Issue の有無を再確認する
+
+### External Dependency / Needs Human Action
+
+1. Notion 上に `Projects` / `Tasks` / `Specs` / `Notes` / `Knowledge` を実作成する
+2. GitHub 上で Phase 1 Issue とテンプレート運用が実運用状態かを確認する
+3. GitHub-Notion 同期を 1 サイクル実行し、`Tasks` 最小同期で回るか検証する
+
 ## Decision Log
 
 - 2026-04-20: 4フェーズ構成で進める
