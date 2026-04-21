@@ -110,6 +110,7 @@ DISCORD_ALLOWED_USER_IDS=
 ```
 
 `DISCORD_ALLOWED_*` は任意ですが、`DISCORD_CODEX_EXEC_MODE=bypass` で使う場合は設定推奨です。
+`DISCORD_SYNC_APPLY_CHANNEL_IDS` を使うと、`/codex-sync-tasks dry_run:false` を許可するチャンネルを固定できます。
 確認待ちトークンは `runtime/pending-confirmations.json` に保存され、Bot 再起動後も引き継がれます。
 
 コマンド登録:

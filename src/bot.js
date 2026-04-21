@@ -48,6 +48,7 @@ const ALLOWED_GUILD_IDS = parseIdSet(
 );
 const ALLOWED_CHANNEL_IDS = parseIdSet(process.env.DISCORD_ALLOWED_CHANNEL_IDS);
 const ALLOWED_USER_IDS = parseIdSet(process.env.DISCORD_ALLOWED_USER_IDS);
+const SYNC_APPLY_CHANNEL_IDS = parseIdSet(process.env.DISCORD_SYNC_APPLY_CHANNEL_IDS);
 
 function parseIdSet(rawValue) {
   if (!rawValue) {
@@ -413,6 +414,37 @@ function buildCommandLogSummary(limit = 8) {
   return [
     `最新ログ: ${entries.length}件`,
     ...entries.map((entry) => formatCommandLogEntry(entry)),
+  ].join("\n");
+}
+
+function canApplyTaskSync(interaction) {
+  if (SYNC_APPLY_CHANNEL_IDS.size === 0) {
+    return {
+      allowed: false,
+      reason: "DISCORD_SYNC_APPLY_CHANNEL_IDS が未設定です。",
+    };
+  }
+
+  if (!interaction.channelId || !SYNC_APPLY_CHANNEL_IDS.has(interaction.channelId)) {
+    return {
+      allowed: false,
+      reason: "このチャンネルでは本実行できません。",
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: "",
+  };
+}
+
+function buildTaskSyncApplyDeniedReply(reason) {
+  return [
+    "GitHub / Notion Tasks 同期の本実行はこの条件では許可されていません。",
+    "",
+    reason,
+    "",
+    "まずは `dry_run:true` で確認してください。",
   ].join("\n");
 }
 
@@ -868,6 +900,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === "codex-sync-tasks") {
     const dryRun = interaction.options.getBoolean("dry_run") ?? true;
+    if (!dryRun) {
+      const applyAccess = canApplyTaskSync(interaction);
+      if (!applyAccess.allowed) {
+        appendCommandLog({
+          event: "task_sync_apply_denied",
+          commandName: interaction.commandName,
+          userTag: interaction.user.tag,
+          channelId: interaction.channelId,
+          reason: applyAccess.reason,
+        });
+        await interaction.reply({
+          content: buildTaskSyncApplyDeniedReply(applyAccess.reason),
+          ephemeral: true,
+        });
+        return;
+      }
+    }
     await handleTaskSync(interaction, dryRun);
     return;
   }

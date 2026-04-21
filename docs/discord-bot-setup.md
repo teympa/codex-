@@ -27,12 +27,14 @@ DISCORD_CODEX_EXEC_MODE=read-only
 DISCORD_ALLOWED_GUILD_IDS=
 DISCORD_ALLOWED_CHANNEL_IDS=
 DISCORD_ALLOWED_USER_IDS=
+DISCORD_SYNC_APPLY_CHANNEL_IDS=
 ```
 
 `NOTION_API_TOKEN` は任意です。設定すると `/codex-status` で Notion `Tasks` の live 集計を返します。
 `DISCORD_REPLY_EPHEMERAL=false` にすると、Bot の返答をチャンネル全体に表示できます。
 `DISCORD_CODEX_EXEC_MODE=bypass` にすると、Discord 経由の `/codex` 実行を sandbox bypass で走らせます。
 `DISCORD_ALLOWED_GUILD_IDS` `DISCORD_ALLOWED_CHANNEL_IDS` `DISCORD_ALLOWED_USER_IDS` は任意です。カンマ区切りで指定すると、その allowlist に一致する場所とユーザーだけが Bot を使えます。
+`DISCORD_SYNC_APPLY_CHANNEL_IDS` は任意です。本当に Notion を更新する `dry_run:false` を許可するチャンネルだけを入れます。
 
 ## Install
 
@@ -62,6 +64,7 @@ npm run dev
 - `/codex-log`: 実行ログの最新数件を確認する
 - 確認待ちトークンは `runtime/pending-confirmations.json` に保存する
 - Bot 再起動後も 24 時間以内の確認待ちは復元する
+- `/codex-sync-tasks` の `dry_run:false` は `DISCORD_SYNC_APPLY_CHANNEL_IDS` のチャンネルでだけ許可する
 
 ## Logging
 
@@ -81,6 +84,7 @@ npm run dev
 - `DISCORD_ALLOWED_GUILD_IDS` を設定すると、指定した guild 以外では実行できません
 - `DISCORD_ALLOWED_CHANNEL_IDS` を設定すると、指定した channel 以外では実行できません
 - `DISCORD_ALLOWED_USER_IDS` を設定すると、指定した user 以外では実行できません
+- `DISCORD_SYNC_APPLY_CHANNEL_IDS` を設定すると、`/codex-sync-tasks dry_run:false` の本実行チャンネルを限定できます
 - 複数指定する場合は `123,456,789` のようにカンマ区切りで入れます
 - 拒否された操作は `runtime/discord-command-log.jsonl` に `access_denied` として残ります
 
