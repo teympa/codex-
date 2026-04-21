@@ -38,6 +38,9 @@ const commands = [
         .setDescription("承認対象の短い識別子や内容")
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-pending")
+    .setDescription("確認待ちの一覧を確認する"),
 ].map((command) => command.toJSON());
 
 async function main() {

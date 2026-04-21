@@ -270,6 +270,60 @@ function buildConfirmationRejectedReply() {
   return "この確認 token は発行された本人だけが承認できます。";
 }
 
+function formatAge(createdAt) {
+  const elapsedMs = Math.max(0, Date.now() - createdAt);
+  const totalMinutes = Math.floor(elapsedMs / 60000);
+
+  if (totalMinutes < 1) {
+    return "<1m";
+  }
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
+}
+
+function shortenInstruction(instruction, maxLength = 80) {
+  if (instruction.length <= maxLength) {
+    return instruction;
+  }
+
+  return `${instruction.slice(0, maxLength - 3)}...`;
+}
+
+function buildPendingSummary() {
+  pruneExpiredConfirmations();
+
+  if (pendingConfirmations.size === 0) {
+    return "確認待ちはありません。";
+  }
+
+  const entries = [...pendingConfirmations.entries()]
+    .sort((a, b) => b[1].createdAt - a[1].createdAt)
+    .slice(0, 10)
+    .map(([token, pending]) => {
+      const age = formatAge(pending.createdAt);
+      const owner = pending.userTag || pending.userId || "unknown";
+      const instruction = shortenInstruction(pending.instruction);
+      return `- ${token} | ${age} | ${owner} | ${instruction}`;
+    });
+
+  const lines = [
+    `確認待ち: ${pendingConfirmations.size}件`,
+    ...entries,
+  ];
+
+  if (pendingConfirmations.size > entries.length) {
+    lines.push(`- 他 ${pendingConfirmations.size - entries.length} 件`);
+  }
+
+  return lines.join("\n");
+}
+
 function runCodexExec(instruction, mode = "read-only") {
   const outputFile = path.join(
     os.tmpdir(),
@@ -428,6 +482,9 @@ const commands = [
         .setDescription("承認対象の短い識別子や内容")
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-pending")
+    .setDescription("確認待ちの一覧を確認する"),
 ].map((command) => command.toJSON());
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -588,6 +645,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
       instruction: pending.instruction,
     });
     await handleCodexInstruction(interaction, pending.instruction, "workspace-write");
+    return;
+  }
+
+  if (interaction.commandName === "codex-pending") {
+    appendCommandLog({
+      event: "pending_list_requested",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+    });
+    await interaction.reply({
+      content: trimForDiscord(buildPendingSummary()),
+      ephemeral: true,
+    });
   }
 });
 

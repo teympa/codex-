@@ -9,6 +9,7 @@ Discord から Codex に指示を送るための最小 Bot を起動する。
 - `/codex`
 - `/codex-status`
 - `/codex-confirm`
+- `/codex-pending`
 
 ## Required Environment Variables
 
@@ -54,6 +55,7 @@ npm run dev
 - `/codex`: 安全な指示は `codex exec` で実行する
 - `/codex-status`: `context.md`、GitHub tracked issues、任意で Notion `Tasks` 集計を返す
 - `/codex-confirm`: 確認待ちトークンを受けて変更系指示を実行する
+- `/codex-pending`: 確認待ちの token 一覧を確認する
 - 確認待ちトークンは `runtime/pending-confirmations.json` に保存する
 - Bot 再起動後も 24 時間以内の確認待ちは復元する
 
@@ -97,4 +99,4 @@ npm run dev
 1. 実行ログを分析しやすい形に整える
 2. Notion / GitHub 連携を安全に有効化する
 3. 許可ユーザー向けに `/codex-status` の要約粒度を改善する
-4. 確認待ち一覧を確認できる管理コマンドを追加する
+4. `sync:tasks` を Discord から実行できる管理コマンドを追加する
