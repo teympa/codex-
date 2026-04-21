@@ -61,6 +61,9 @@ const commands = [
         .setMaxValue(20)
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-env")
+    .setDescription("Discord の環境 ID と現在の allowlist 設定を確認する"),
 ].map((command) => command.toJSON());
 
 async function main() {

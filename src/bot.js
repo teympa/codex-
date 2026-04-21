@@ -417,6 +417,30 @@ function buildCommandLogSummary(limit = 8) {
   ].join("\n");
 }
 
+function formatIdSet(set) {
+  if (!set || set.size === 0) {
+    return "(not set)";
+  }
+
+  return [...set].join(", ");
+}
+
+function buildEnvironmentSummary(interaction) {
+  return [
+    "**Discord Environment**",
+    `- guild_id: ${interaction.guildId || "(none)"}`,
+    `- channel_id: ${interaction.channelId || "(none)"}`,
+    `- user_id: ${interaction.user?.id || "(none)"}`,
+    `- user_tag: ${interaction.user?.tag || "(unknown)"}`,
+    "",
+    "**Configured Allowlists**",
+    `- DISCORD_ALLOWED_GUILD_IDS: ${formatIdSet(ALLOWED_GUILD_IDS)}`,
+    `- DISCORD_ALLOWED_CHANNEL_IDS: ${formatIdSet(ALLOWED_CHANNEL_IDS)}`,
+    `- DISCORD_ALLOWED_USER_IDS: ${formatIdSet(ALLOWED_USER_IDS)}`,
+    `- DISCORD_SYNC_APPLY_CHANNEL_IDS: ${formatIdSet(SYNC_APPLY_CHANNEL_IDS)}`,
+  ].join("\n");
+}
+
 function canApplyTaskSync(interaction) {
   if (SYNC_APPLY_CHANNEL_IDS.size === 0) {
     return {
@@ -486,7 +510,7 @@ function runNodeScript(scriptPath, args = []) {
 }
 
 async function handleTaskSync(interaction, dryRun) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
   appendCommandLog({
     event: "task_sync_requested",
     commandName: interaction.commandName,
@@ -721,6 +745,9 @@ const commands = [
         .setMaxValue(20)
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-env")
+    .setDescription("Discord の環境 ID と現在の allowlist 設定を確認する"),
 ].map((command) => command.toJSON());
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -893,7 +920,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     });
     await interaction.reply({
       content: trimForDiscord(buildPendingSummary()),
-      ephemeral: true,
+      ephemeral: REPLY_EPHEMERAL,
     });
     return;
   }
@@ -912,7 +939,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
         await interaction.reply({
           content: buildTaskSyncApplyDeniedReply(applyAccess.reason),
-          ephemeral: true,
+          ephemeral: REPLY_EPHEMERAL,
         });
         return;
       }
@@ -932,7 +959,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
     });
     await interaction.reply({
       content: trimForDiscord(buildCommandLogSummary(limit)),
-      ephemeral: true,
+      ephemeral: REPLY_EPHEMERAL,
+    });
+    return;
+  }
+
+  if (interaction.commandName === "codex-env") {
+    appendCommandLog({
+      event: "environment_summary_requested",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+    });
+    await interaction.reply({
+      content: trimForDiscord(buildEnvironmentSummary(interaction)),
+      ephemeral: REPLY_EPHEMERAL,
     });
   }
 });
