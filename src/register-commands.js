@@ -110,6 +110,51 @@ const commands = [
         .setRequired(false)
     ),
   new SlashCommandBuilder()
+    .setName("codex-bootstrap-project")
+    .setDescription("proposal / spec / issue seeds をまとめて生成する")
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("企画タイトル")
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("project")
+        .setDescription("プロジェクト名")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("genre")
+        .setDescription("ジャンル")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("platform")
+        .setDescription("対象プラットフォーム")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("audience")
+        .setDescription("想定ユーザー")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("core_hook")
+        .setDescription("核になる面白さや売り")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("mode")
+        .setDescription("solo / co-op / multiplayer など")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-generate-issue-seeds")
     .setDescription("企画書ドラフトから GitHub Issue 下書きを生成する")
     .addStringOption((option) =>

@@ -14,6 +14,7 @@ Discord から Codex に指示を送るための最小 Bot を起動する。
 - `/codex-log`
 - `/codex-env`
 - `/codex-generate-proposal`
+- `/codex-bootstrap-project`
 - `/codex-generate-issue-seeds`
 - `/codex-generate-spec`
 - `/codex-create-spec-in-notion`
@@ -76,6 +77,7 @@ npm run dev
 - `/codex-log`: 実行ログの最新数件を確認する
 - `/codex-env`: 現在の guild / channel / user ID と allowlist 設定を確認する
 - `/codex-generate-proposal`: ゲーム企画書ドラフトを生成する
+- `/codex-bootstrap-project`: proposal / spec / issue seeds をまとめて生成する
 - `/codex-generate-issue-seeds`: 企画書ドラフトから GitHub Issue 下書きを生成する
 - `/codex-generate-spec`: 企画書ドラフトから spec draft を生成する
 - `/codex-create-spec-in-notion`: spec draft から Notion `Specs` page を作成する

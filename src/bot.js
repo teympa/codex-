@@ -37,6 +37,7 @@ const SYNC_TASKS_SCRIPT_PATH = path.resolve(__dirname, "sync-tasks.js");
 const GENERATE_PROPOSAL_SCRIPT_PATH = path.resolve(__dirname, "generate-proposal.js");
 const GENERATE_ISSUE_SEEDS_SCRIPT_PATH = path.resolve(__dirname, "generate-issue-seeds.js");
 const GENERATE_SPEC_SCRIPT_PATH = path.resolve(__dirname, "generate-spec-from-proposal.js");
+const BOOTSTRAP_PROJECT_SCRIPT_PATH = path.resolve(__dirname, "bootstrap-project.js");
 const CREATE_GITHUB_ISSUES_SCRIPT_PATH = path.resolve(
   __dirname,
   "create-github-issues-from-seeds.js"
@@ -667,6 +668,28 @@ function collectProposalArgs(interaction) {
   return args;
 }
 
+function collectBootstrapArgs(interaction) {
+  const optionMap = [
+    ["title", "title"],
+    ["project", "project"],
+    ["genre", "genre"],
+    ["platform", "platform"],
+    ["audience", "audience"],
+    ["core_hook", "coreHook"],
+    ["mode", "mode"],
+  ];
+
+  const args = [];
+  for (const [optionName, cliName] of optionMap) {
+    const value = interaction.options.getString(optionName);
+    if (value) {
+      args.push(`--${cliName}`, value);
+    }
+  }
+
+  return args;
+}
+
 async function handleProposalGeneration(interaction) {
   await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
   const title = interaction.options.getString("title", true);
@@ -718,6 +741,65 @@ async function handleProposalGeneration(interaction) {
       trimForDiscord(
         [
           "企画書ドラフト生成でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
+async function handleProjectBootstrap(interaction) {
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  const title = interaction.options.getString("title", true);
+  const args = collectBootstrapArgs(interaction);
+
+  appendCommandLog({
+    event: "project_bootstrap_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    title,
+  });
+
+  try {
+    const output = await runNodeScript(BOOTSTRAP_PROJECT_SCRIPT_PATH, args);
+    appendCommandLog({
+      event: "project_bootstrap_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      title,
+      resultPreview: trimForDiscord(output),
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "新規企画のブートストラップが完了しました。",
+          "",
+          "```",
+          output,
+          "```",
+          "",
+          "次は proposal / spec / issue seeds を順に確認してください。",
+        ].join("\n")
+      )
+    );
+  } catch (error) {
+    appendCommandLog({
+      event: "project_bootstrap_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      title,
+      error: error.message,
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "プロジェクトのブートストラップでエラーが発生しました。",
           "",
           error.message,
         ].join("\n")
@@ -1208,6 +1290,51 @@ const commands = [
         .setRequired(false)
     ),
   new SlashCommandBuilder()
+    .setName("codex-bootstrap-project")
+    .setDescription("proposal / spec / issue seeds をまとめて生成する")
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("企画タイトル")
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("project")
+        .setDescription("プロジェクト名")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("genre")
+        .setDescription("ジャンル")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("platform")
+        .setDescription("対象プラットフォーム")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("audience")
+        .setDescription("想定ユーザー")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("core_hook")
+        .setDescription("核になる面白さや売り")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("mode")
+        .setDescription("solo / co-op / multiplayer など")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-generate-issue-seeds")
     .setDescription("企画書ドラフトから GitHub Issue 下書きを生成する")
     .addStringOption((option) =>
@@ -1487,6 +1614,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === "codex-generate-proposal") {
     await handleProposalGeneration(interaction);
+    return;
+  }
+
+  if (interaction.commandName === "codex-bootstrap-project") {
+    await handleProjectBootstrap(interaction);
     return;
   }
 

@@ -18,6 +18,7 @@ Last updated: 2026-04-22
 - `/codex-log`
 - `/codex-env`
 - `/codex-generate-proposal`
+- `/codex-bootstrap-project`
 - `/codex-generate-issue-seeds`
 - `/codex-generate-spec`
 - `/codex-create-spec-in-notion`
@@ -274,6 +275,39 @@ Last updated: 2026-04-22
 - 実体は `src/generate-proposal.js` を呼び出す
 - 生成後は Notion `Specs` や GitHub Issue への分解に進める
 
+### `/codex-bootstrap-project`
+
+用途:
+
+- proposal / spec draft / issue seeds をまとめて生成する
+
+入力:
+
+- `title` 必須
+- `project` 任意
+- `genre` 任意
+- `platform` 任意
+- `audience` 任意
+- `core_hook` 任意
+- `mode` 任意
+
+例:
+
+```text
+/codex-bootstrap-project title:Neon Courier genre:Action Runner platform:PC / Mobile audience:midcore players core_hook:high-speed delivery under shifting city hazards mode:solo
+```
+
+出力:
+
+- `drafts/proposals/YYYYMMDD-project-name.md`
+- `drafts/specs/YYYYMMDD-project-name-spec.md`
+- `drafts/issue-seeds/YYYYMMDD-project-name-issue-seeds.md`
+
+補足:
+
+- 新規企画の最初の足場をまとめて作るためのコマンド
+- 実体は `src/bootstrap-project.js` を呼び出す
+
 ### `/codex-generate-issue-seeds`
 
 用途:
@@ -444,6 +478,9 @@ Bot には allowlist 制御がある。
 - `proposal_generation_requested`
 - `proposal_generation_succeeded`
 - `proposal_generation_failed`
+- `project_bootstrap_requested`
+- `project_bootstrap_succeeded`
+- `project_bootstrap_failed`
 - `issue_seed_generation_requested`
 - `issue_seed_generation_succeeded`
 - `issue_seed_generation_failed`
@@ -512,7 +549,8 @@ GITHUB_TOKEN=
 6. 挙動確認は `/codex-log`
 7. 設定確認は `/codex-env`
 8. 新規企画は `/codex-generate-proposal`
-9. 起票下書きは `/codex-generate-issue-seeds`
-10. spec draft は `/codex-generate-spec`
-11. Notion Spec 作成は `/codex-create-spec-in-notion`
-12. GitHub 実起票は `/codex-create-issues-from-seeds`
+9. 新規企画をまとめて始めるなら `/codex-bootstrap-project`
+10. 起票下書きは `/codex-generate-issue-seeds`
+11. spec draft は `/codex-generate-spec`
+12. Notion Spec 作成は `/codex-create-spec-in-notion`
+13. GitHub 実起票は `/codex-create-issues-from-seeds`
