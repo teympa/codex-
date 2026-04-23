@@ -37,7 +37,7 @@
 
 ### Next Priority
 
-- `/codex-env` で実運用値を確認し、allowlist と `sync:tasks` 本実行チャンネルを固定する
+- Phase 3 の入口として企画書テンプレ自動生成を整備する
 
 ## Active Deliverables
 
@@ -74,11 +74,10 @@
 
 ## Immediate Next Steps
 
-1. `/codex-env` で guild / channel / user ID を確認する
-2. allowlist の実運用値を `.env` に反映し、運用チャンネルを固定する
-3. `DISCORD_SYNC_APPLY_CHANNEL_IDS` に本実行チャンネルを反映する
-4. 必要なら `/codex-log` の表示粒度を調整する
-5. `/codex-status` を必要に応じてさらに圧縮する
+1. 企画書ドラフト生成スクリプトを追加する
+2. 生成したドラフトを Notion `Specs` に寄せる流れを定義する
+3. 必要なら Discord から企画書生成を起動できるようにする
+4. `Specs` / `Notes` の運用テンプレートを企画フローに合わせて見直す
 
 ## Actionable Tasks (2026-04-21)
 
@@ -121,6 +120,7 @@
 - 2026-04-22: 実行ログは `/codex-log` で Discord から最新数件を確認できるようにする
 - 2026-04-22: `/codex-sync-tasks dry_run:false` は `DISCORD_SYNC_APPLY_CHANNEL_IDS` のチャンネルだけで許可する
 - 2026-04-22: `.env` に入れる実運用値確認用に `/codex-env` を追加する
+- 2026-04-22: Phase 3 の入口として、ゲーム企画書ドラフトをローカル Markdown で自動生成できるようにする
 
 ## References
 
@@ -151,7 +151,7 @@
 - 実行ログを見られる `/codex-log` まで入った
 - `sync:tasks` の本実行チャンネル制限まで入った
 - `.env` 反映前に使える `/codex-env` まで入った
-- 次回は `/codex-env` で確認した値を `.env` に反映して運用を固定する
+- 次回は企画書ドラフト生成から `Specs` / Issue 分解へつながる流れを固める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
 - Discord 実装は安全面の基礎が入ったので、次は運用自動化に寄せる

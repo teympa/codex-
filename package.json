@@ -9,7 +9,8 @@
     "start": "node src/bot.js",
     "register:commands": "node src/register-commands.js",
     "sync:tasks": "node src/sync-tasks.js",
-    "sync:tasks:dry": "node src/sync-tasks.js --dry-run"
+    "sync:tasks:dry": "node src/sync-tasks.js --dry-run",
+    "generate:proposal": "node src/generate-proposal.js"
   },
   "engines": {
     "node": ">=20"
