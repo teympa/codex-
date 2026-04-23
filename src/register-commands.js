@@ -155,6 +155,21 @@ const commands = [
         .setRequired(false)
     ),
   new SlashCommandBuilder()
+    .setName("codex-apply-bootstrap")
+    .setDescription("bootstrap 済みの spec と issue seeds をまとめて反映する")
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("企画タイトル")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("反映はせず確認だけ行う")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-generate-issue-seeds")
     .setDescription("企画書ドラフトから GitHub Issue 下書きを生成する")
     .addStringOption((option) =>

@@ -38,6 +38,10 @@ const GENERATE_PROPOSAL_SCRIPT_PATH = path.resolve(__dirname, "generate-proposal
 const GENERATE_ISSUE_SEEDS_SCRIPT_PATH = path.resolve(__dirname, "generate-issue-seeds.js");
 const GENERATE_SPEC_SCRIPT_PATH = path.resolve(__dirname, "generate-spec-from-proposal.js");
 const BOOTSTRAP_PROJECT_SCRIPT_PATH = path.resolve(__dirname, "bootstrap-project.js");
+const APPLY_BOOTSTRAP_PROJECT_SCRIPT_PATH = path.resolve(
+  __dirname,
+  "apply-bootstrap-project.js"
+);
 const CREATE_GITHUB_ISSUES_SCRIPT_PATH = path.resolve(
   __dirname,
   "create-github-issues-from-seeds.js"
@@ -554,6 +558,33 @@ function buildNotionSpecCreationDeniedReply(reason) {
   ].join("\n");
 }
 
+function canApplyBootstrapArtifacts(interaction) {
+  const notionAccess = canApplyNotionSpecCreation(interaction);
+  if (!notionAccess.allowed) {
+    return notionAccess;
+  }
+
+  const issueAccess = canApplyIssueCreation(interaction);
+  if (!issueAccess.allowed) {
+    return issueAccess;
+  }
+
+  return {
+    allowed: true,
+    reason: "",
+  };
+}
+
+function buildBootstrapApplyDeniedReply(reason) {
+  return [
+    "bootstrap 後の本反映はこの条件では許可されていません。",
+    "",
+    reason,
+    "",
+    "まずは `dry_run:true` で確認してください。",
+  ].join("\n");
+}
+
 function runNodeScript(scriptPath, args = []) {
   return new Promise((resolve, reject) => {
     const child = spawn(NODE_BIN, [scriptPath, ...args], {
@@ -800,6 +831,69 @@ async function handleProjectBootstrap(interaction) {
       trimForDiscord(
         [
           "プロジェクトのブートストラップでエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
+async function handleBootstrapApply(interaction, dryRun) {
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  const title = interaction.options.getString("title", true);
+  const args = ["--title", title];
+  if (!dryRun) {
+    args.push("--apply");
+  }
+
+  appendCommandLog({
+    event: "bootstrap_apply_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    title,
+    dryRun,
+  });
+
+  try {
+    const output = await runNodeScript(APPLY_BOOTSTRAP_PROJECT_SCRIPT_PATH, args);
+    appendCommandLog({
+      event: "bootstrap_apply_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      title,
+      dryRun,
+      resultPreview: trimForDiscord(output),
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          dryRun ? "bootstrap 反映 dry-run が完了しました。" : "bootstrap 反映が完了しました。",
+          "",
+          "```",
+          output,
+          "```",
+        ].join("\n")
+      )
+    );
+  } catch (error) {
+    appendCommandLog({
+      event: "bootstrap_apply_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      title,
+      dryRun,
+      error: error.message,
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "bootstrap 反映でエラーが発生しました。",
           "",
           error.message,
         ].join("\n")
@@ -1335,6 +1429,21 @@ const commands = [
         .setRequired(false)
     ),
   new SlashCommandBuilder()
+    .setName("codex-apply-bootstrap")
+    .setDescription("bootstrap 済みの spec と issue seeds をまとめて反映する")
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("企画タイトル")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("反映はせず確認だけ行う")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-generate-issue-seeds")
     .setDescription("企画書ドラフトから GitHub Issue 下書きを生成する")
     .addStringOption((option) =>
@@ -1619,6 +1728,30 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === "codex-bootstrap-project") {
     await handleProjectBootstrap(interaction);
+    return;
+  }
+
+  if (interaction.commandName === "codex-apply-bootstrap") {
+    const dryRun = interaction.options.getBoolean("dry_run") ?? true;
+    if (!dryRun) {
+      const applyAccess = canApplyBootstrapArtifacts(interaction);
+      if (!applyAccess.allowed) {
+        appendCommandLog({
+          event: "bootstrap_apply_denied",
+          commandName: interaction.commandName,
+          userTag: interaction.user.tag,
+          channelId: interaction.channelId,
+          reason: applyAccess.reason,
+        });
+        await interaction.reply({
+          content: buildBootstrapApplyDeniedReply(applyAccess.reason),
+          ephemeral: REPLY_EPHEMERAL,
+        });
+        return;
+      }
+    }
+
+    await handleBootstrapApply(interaction, dryRun);
     return;
   }
 

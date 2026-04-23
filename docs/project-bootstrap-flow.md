@@ -16,6 +16,16 @@ Discord から実行する場合:
 /codex-bootstrap-project title:Project Name
 ```
 
+反映まで進める場合:
+
+```bash
+npm run apply:bootstrap -- --title "Project Name"
+```
+
+```text
+/codex-apply-bootstrap title:Project Name
+```
+
 ## Output
 
 まとめて生成されるもの:
