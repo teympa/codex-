@@ -19,6 +19,7 @@ Last updated: 2026-04-22
 - `/codex-env`
 - `/codex-generate-proposal`
 - `/codex-generate-issue-seeds`
+- `/codex-generate-spec`
 - `/codex-create-issues-from-seeds`
 
 ## Command Reference
@@ -298,6 +299,31 @@ Last updated: 2026-04-22
 - `GitHub Issue Seeds` セクションにチェックボックス行が必要
 - 実体は `src/generate-issue-seeds.js` を呼び出す
 
+### `/codex-generate-spec`
+
+用途:
+
+- 企画書ドラフトから spec draft Markdown を生成する
+
+入力:
+
+- `proposal_file` 必須
+
+例:
+
+```text
+/codex-generate-spec proposal_file:20260423-neon-courier.md
+```
+
+出力:
+
+- `drafts/specs/YYYYMMDD-project-name-spec.md`
+
+補足:
+
+- proposal の主要セクションを spec 用に再配置する
+- 実体は `src/generate-spec-from-proposal.js` を呼び出す
+
 ### `/codex-create-issues-from-seeds`
 
 用途:
@@ -390,6 +416,9 @@ Bot には allowlist 制御がある。
 - `issue_seed_generation_requested`
 - `issue_seed_generation_succeeded`
 - `issue_seed_generation_failed`
+- `spec_generation_requested`
+- `spec_generation_succeeded`
+- `spec_generation_failed`
 - `github_issue_creation_requested`
 - `github_issue_creation_succeeded`
 - `github_issue_creation_failed`
@@ -447,4 +476,5 @@ GITHUB_TOKEN=
 7. 設定確認は `/codex-env`
 8. 新規企画は `/codex-generate-proposal`
 9. 起票下書きは `/codex-generate-issue-seeds`
-10. GitHub 実起票は `/codex-create-issues-from-seeds`
+10. spec draft は `/codex-generate-spec`
+11. GitHub 実起票は `/codex-create-issues-from-seeds`

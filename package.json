@@ -12,7 +12,8 @@
     "sync:tasks:dry": "node src/sync-tasks.js --dry-run",
     "generate:proposal": "node src/generate-proposal.js",
     "generate:issue-seeds": "node src/generate-issue-seeds.js",
-    "create:github-issues": "node src/create-github-issues-from-seeds.js"
+    "create:github-issues": "node src/create-github-issues-from-seeds.js",
+    "generate:spec": "node src/generate-spec-from-proposal.js"
   },
   "engines": {
     "node": ">=20"

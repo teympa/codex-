@@ -119,6 +119,15 @@ const commands = [
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName("codex-generate-spec")
+    .setDescription("企画書ドラフトから spec draft を生成する")
+    .addStringOption((option) =>
+      option
+        .setName("proposal_file")
+        .setDescription("drafts/proposals 配下の proposal ファイル名")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-create-issues-from-seeds")
     .setDescription("Issue 下書き Markdown から GitHub Issue を作成する")
     .addStringOption((option) =>

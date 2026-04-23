@@ -36,6 +36,7 @@ const PENDING_CONFIRMATIONS_PATH = path.join(
 const SYNC_TASKS_SCRIPT_PATH = path.resolve(__dirname, "sync-tasks.js");
 const GENERATE_PROPOSAL_SCRIPT_PATH = path.resolve(__dirname, "generate-proposal.js");
 const GENERATE_ISSUE_SEEDS_SCRIPT_PATH = path.resolve(__dirname, "generate-issue-seeds.js");
+const GENERATE_SPEC_SCRIPT_PATH = path.resolve(__dirname, "generate-spec-from-proposal.js");
 const CREATE_GITHUB_ISSUES_SCRIPT_PATH = path.resolve(
   __dirname,
   "create-github-issues-from-seeds.js"
@@ -748,6 +749,68 @@ async function handleIssueSeedGeneration(interaction) {
   }
 }
 
+async function handleSpecGeneration(interaction) {
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  const proposalFile = interaction.options.getString("proposal_file", true);
+
+  appendCommandLog({
+    event: "spec_generation_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    proposalFile,
+  });
+
+  try {
+    const output = await runNodeScript(GENERATE_SPEC_SCRIPT_PATH, [
+      "--file",
+      proposalFile,
+    ]);
+
+    appendCommandLog({
+      event: "spec_generation_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      proposalFile,
+      resultPreview: trimForDiscord(output),
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "Spec draft を生成しました。",
+          "",
+          "```",
+          output,
+          "```",
+          "",
+          "次は `drafts/specs/` の内容を整えてから Notion `Specs` に移してください。",
+        ].join("\n")
+      )
+    );
+  } catch (error) {
+    appendCommandLog({
+      event: "spec_generation_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      proposalFile,
+      error: error.message,
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "Spec draft 生成でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
 async function handleGithubIssueCreation(interaction, dryRun) {
   await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
   const issueSeedFile = interaction.options.getString("issue_seed_file", true);
@@ -1051,6 +1114,15 @@ const commands = [
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName("codex-generate-spec")
+    .setDescription("企画書ドラフトから spec draft を生成する")
+    .addStringOption((option) =>
+      option
+        .setName("proposal_file")
+        .setDescription("drafts/proposals 配下の proposal ファイル名")
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-create-issues-from-seeds")
     .setDescription("Issue 下書き Markdown から GitHub Issue を作成する")
     .addStringOption((option) =>
@@ -1302,6 +1374,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === "codex-generate-issue-seeds") {
     await handleIssueSeedGeneration(interaction);
+    return;
+  }
+
+  if (interaction.commandName === "codex-generate-spec") {
+    await handleSpecGeneration(interaction);
     return;
   }
 
