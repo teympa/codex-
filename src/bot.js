@@ -34,6 +34,7 @@ const PENDING_CONFIRMATIONS_PATH = path.join(
   "pending-confirmations.json"
 );
 const SYNC_TASKS_SCRIPT_PATH = path.resolve(__dirname, "sync-tasks.js");
+const GENERATE_PROPOSAL_SCRIPT_PATH = path.resolve(__dirname, "generate-proposal.js");
 const pendingConfirmations = new Map();
 const MAX_DISCORD_MESSAGE = 1900;
 const PENDING_CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -564,6 +565,87 @@ async function handleTaskSync(interaction, dryRun) {
   }
 }
 
+function collectProposalArgs(interaction) {
+  const optionMap = [
+    ["title", "title"],
+    ["project", "project"],
+    ["genre", "genre"],
+    ["platform", "platform"],
+    ["audience", "audience"],
+    ["core_hook", "coreHook"],
+    ["mode", "mode"],
+  ];
+
+  const args = [];
+  for (const [optionName, cliName] of optionMap) {
+    const value = interaction.options.getString(optionName);
+    if (value) {
+      args.push(`--${cliName}`, value);
+    }
+  }
+
+  return args;
+}
+
+async function handleProposalGeneration(interaction) {
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  const title = interaction.options.getString("title", true);
+  const args = collectProposalArgs(interaction);
+
+  appendCommandLog({
+    event: "proposal_generation_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    title,
+  });
+
+  try {
+    const output = await runNodeScript(GENERATE_PROPOSAL_SCRIPT_PATH, args);
+    appendCommandLog({
+      event: "proposal_generation_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      title,
+      resultPreview: trimForDiscord(output),
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "企画書ドラフトを生成しました。",
+          "",
+          "```",
+          output,
+          "```",
+          "",
+          "次は内容を埋めてから、必要に応じて Notion `Specs` や GitHub Issue へ分解してください。",
+        ].join("\n")
+      )
+    );
+  } catch (error) {
+    appendCommandLog({
+      event: "proposal_generation_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      title,
+      error: error.message,
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "企画書ドラフト生成でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
 function runCodexExec(instruction, mode = "read-only") {
   const outputFile = path.join(
     os.tmpdir(),
@@ -748,6 +830,51 @@ const commands = [
   new SlashCommandBuilder()
     .setName("codex-env")
     .setDescription("Discord の環境 ID と現在の allowlist 設定を確認する"),
+  new SlashCommandBuilder()
+    .setName("codex-generate-proposal")
+    .setDescription("ゲーム企画書ドラフトを生成する")
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("企画書タイトル")
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("project")
+        .setDescription("プロジェクト名")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("genre")
+        .setDescription("ジャンル")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("platform")
+        .setDescription("対象プラットフォーム")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("audience")
+        .setDescription("想定ユーザー")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("core_hook")
+        .setDescription("核になる面白さや売り")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("mode")
+        .setDescription("solo / co-op / multiplayer など")
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -975,6 +1102,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
       content: trimForDiscord(buildEnvironmentSummary(interaction)),
       ephemeral: REPLY_EPHEMERAL,
     });
+    return;
+  }
+
+  if (interaction.commandName === "codex-generate-proposal") {
+    await handleProposalGeneration(interaction);
   }
 });
 

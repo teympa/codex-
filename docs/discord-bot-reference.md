@@ -17,6 +17,7 @@ Last updated: 2026-04-22
 - `/codex-sync-tasks`
 - `/codex-log`
 - `/codex-env`
+- `/codex-generate-proposal`
 
 ## Command Reference
 
@@ -237,6 +238,38 @@ Last updated: 2026-04-22
 - `.env` に入れる本番運用値の確認
 - いまどの allowlist 設定で動いているかの確認
 
+### `/codex-generate-proposal`
+
+用途:
+
+- ゲーム企画書ドラフトを `drafts/proposals/` に生成する
+
+入力:
+
+- `title` 必須
+- `project` 任意
+- `genre` 任意
+- `platform` 任意
+- `audience` 任意
+- `core_hook` 任意
+- `mode` 任意
+
+例:
+
+```text
+/codex-generate-proposal title:Neon Courier genre:Action Runner platform:PC / Mobile audience:midcore players core_hook:high-speed delivery under shifting city hazards mode:solo
+```
+
+出力:
+
+- `drafts/proposals/YYYYMMDD-title.md`
+
+補足:
+
+- 同じ日付と同じ title のファイルが既にある場合は上書きしない
+- 実体は `src/generate-proposal.js` を呼び出す
+- 生成後は Notion `Specs` や GitHub Issue への分解に進める
+
 ## Visibility
 
 表示設定は `.env` の `DISCORD_REPLY_EPHEMERAL` に従う。
@@ -293,6 +326,9 @@ Bot には allowlist 制御がある。
 - `task_sync_apply_denied`
 - `command_log_requested`
 - `environment_summary_requested`
+- `proposal_generation_requested`
+- `proposal_generation_succeeded`
+- `proposal_generation_failed`
 - `access_denied`
 
 ## Environment Variables
@@ -340,3 +376,4 @@ DISCORD_SYNC_APPLY_CHANNEL_IDS=
 5. 同期が必要なら `/codex-sync-tasks`
 6. 挙動確認は `/codex-log`
 7. 設定確認は `/codex-env`
+8. 新規企画は `/codex-generate-proposal`

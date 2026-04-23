@@ -13,6 +13,7 @@ Discord から Codex に指示を送るための最小 Bot を起動する。
 - `/codex-sync-tasks`
 - `/codex-log`
 - `/codex-env`
+- `/codex-generate-proposal`
 
 ## Required Environment Variables
 
@@ -64,6 +65,7 @@ npm run dev
 - `/codex-sync-tasks`: GitHub Issue と Notion `Tasks` の同期を実行する
 - `/codex-log`: 実行ログの最新数件を確認する
 - `/codex-env`: 現在の guild / channel / user ID と allowlist 設定を確認する
+- `/codex-generate-proposal`: ゲーム企画書ドラフトを生成する
 - 確認待ちトークンは `runtime/pending-confirmations.json` に保存する
 - Bot 再起動後も 24 時間以内の確認待ちは復元する
 - `/codex-sync-tasks` の `dry_run:false` は `DISCORD_SYNC_APPLY_CHANNEL_IDS` のチャンネルでだけ許可する

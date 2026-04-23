@@ -64,6 +64,51 @@ const commands = [
   new SlashCommandBuilder()
     .setName("codex-env")
     .setDescription("Discord の環境 ID と現在の allowlist 設定を確認する"),
+  new SlashCommandBuilder()
+    .setName("codex-generate-proposal")
+    .setDescription("ゲーム企画書ドラフトを生成する")
+    .addStringOption((option) =>
+      option
+        .setName("title")
+        .setDescription("企画書タイトル")
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("project")
+        .setDescription("プロジェクト名")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("genre")
+        .setDescription("ジャンル")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("platform")
+        .setDescription("対象プラットフォーム")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("audience")
+        .setDescription("想定ユーザー")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("core_hook")
+        .setDescription("核になる面白さや売り")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("mode")
+        .setDescription("solo / co-op / multiplayer など")
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 async function main() {

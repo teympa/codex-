@@ -27,6 +27,7 @@
 - Discord Bot に guild / channel / user の allowlist ベースのアクセス制御を追加済み
 - Discord Bot の確認待ちアクションを `runtime/pending-confirmations.json` に永続化済み
 - GitHub Issue から Notion `Tasks` への半自動同期スクリプトを追加済み
+- ゲーム企画書ドラフトを CLI と Discord から生成できる初期導線を追加済み
 
 ### Incomplete Items
 
@@ -37,7 +38,7 @@
 
 ### Next Priority
 
-- Phase 3 の入口として企画書テンプレ自動生成を整備する
+- 生成した企画書ドラフトを Notion `Specs` と GitHub Issue 分解へつなげる
 
 ## Active Deliverables
 
@@ -74,10 +75,10 @@
 
 ## Immediate Next Steps
 
-1. 企画書ドラフト生成スクリプトを追加する
-2. 生成したドラフトを Notion `Specs` に寄せる流れを定義する
-3. 必要なら Discord から企画書生成を起動できるようにする
-4. `Specs` / `Notes` の運用テンプレートを企画フローに合わせて見直す
+1. 生成したドラフトを Notion `Specs` に寄せる流れを定義する
+2. 企画書ドラフトから GitHub Issue Seeds を実 Issue 化する流れを設計する
+3. `Specs` / `Notes` の運用テンプレートを企画フローに合わせて見直す
+4. 必要なら `/codex-generate-proposal` の入力項目を拡張する
 
 ## Actionable Tasks (2026-04-21)
 
@@ -121,6 +122,7 @@
 - 2026-04-22: `/codex-sync-tasks dry_run:false` は `DISCORD_SYNC_APPLY_CHANNEL_IDS` のチャンネルだけで許可する
 - 2026-04-22: `.env` に入れる実運用値確認用に `/codex-env` を追加する
 - 2026-04-22: Phase 3 の入口として、ゲーム企画書ドラフトをローカル Markdown で自動生成できるようにする
+- 2026-04-23: Discord から `/codex-generate-proposal` でゲーム企画書ドラフトを生成できるようにする
 
 ## References
 
@@ -151,6 +153,7 @@
 - 実行ログを見られる `/codex-log` まで入った
 - `sync:tasks` の本実行チャンネル制限まで入った
 - `.env` 反映前に使える `/codex-env` まで入った
+- 企画書ドラフト生成は CLI と Discord の両方から使える
 - 次回は企画書ドラフト生成から `Specs` / Issue 分解へつながる流れを固める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する

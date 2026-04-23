@@ -92,6 +92,7 @@ Node.js 20 以上で、最小の Discord Bot を起動できます。
 - `/codex-sync-tasks`
 - `/codex-log`
 - `/codex-env`
+- `/codex-generate-proposal`
 
 セットアップ:
 
@@ -173,6 +174,12 @@ npm run sync:tasks
 
 ```bash
 npm run generate:proposal -- --title "Project Name"
+```
+
+Discord からも生成できます。
+
+```text
+/codex-generate-proposal title:Project Name
 ```
 
 詳細:
