@@ -128,6 +128,21 @@ const commands = [
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName("codex-create-spec-in-notion")
+    .setDescription("spec draft から Notion Specs に page を作成する")
+    .addStringOption((option) =>
+      option
+        .setName("spec_file")
+        .setDescription("drafts/specs 配下の spec ファイル名")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("作成はせず確認だけ行う")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-create-issues-from-seeds")
     .setDescription("Issue 下書き Markdown から GitHub Issue を作成する")
     .addStringOption((option) =>

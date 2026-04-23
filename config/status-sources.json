@@ -31,6 +31,7 @@
   },
   "notion": {
     "tasksDatabaseUrl": "https://www.notion.so/c07cd409198d4161bc1b12567d5d34c5",
-    "projectsDatabaseUrl": "https://www.notion.so/c3b094ad96a648ca96734cecac9a96d4"
+    "projectsDatabaseUrl": "https://www.notion.so/c3b094ad96a648ca96734cecac9a96d4",
+    "specsDatabaseUrl": "https://www.notion.so/2f213ac9f4184272a4d9bdf956a08221"
   }
 }

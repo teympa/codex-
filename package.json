@@ -13,7 +13,8 @@
     "generate:proposal": "node src/generate-proposal.js",
     "generate:issue-seeds": "node src/generate-issue-seeds.js",
     "create:github-issues": "node src/create-github-issues-from-seeds.js",
-    "generate:spec": "node src/generate-spec-from-proposal.js"
+    "generate:spec": "node src/generate-spec-from-proposal.js",
+    "create:notion-spec": "node src/create-notion-spec-from-draft.js"
   },
   "engines": {
     "node": ">=20"

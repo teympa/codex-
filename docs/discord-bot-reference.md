@@ -20,6 +20,7 @@ Last updated: 2026-04-22
 - `/codex-generate-proposal`
 - `/codex-generate-issue-seeds`
 - `/codex-generate-spec`
+- `/codex-create-spec-in-notion`
 - `/codex-create-issues-from-seeds`
 
 ## Command Reference
@@ -324,6 +325,36 @@ Last updated: 2026-04-22
 - proposal の主要セクションを spec 用に再配置する
 - 実体は `src/generate-spec-from-proposal.js` を呼び出す
 
+### `/codex-create-spec-in-notion`
+
+用途:
+
+- spec draft から Notion `Specs` DB に page を作成する
+
+入力:
+
+- `spec_file` 必須
+- `dry_run` 任意
+
+例:
+
+```text
+/codex-create-spec-in-notion spec_file:20260423-neon-courier-spec.md
+/codex-create-spec-in-notion spec_file:20260423-neon-courier-spec.md dry_run:false
+```
+
+挙動:
+
+- 既定は `dry_run:true`
+- `dry_run:true` では対象 DB、title、block 数を返す
+- `dry_run:false` では Notion `Specs` DB に page を作成する
+
+補足:
+
+- 本実行には `NOTION_API_TOKEN` が必要
+- `dry_run:false` は `DISCORD_NOTION_APPLY_CHANNEL_IDS` のチャンネルだけ許可する
+- 実体は `src/create-notion-spec-from-draft.js` を呼び出す
+
 ### `/codex-create-issues-from-seeds`
 
 用途:
@@ -419,6 +450,10 @@ Bot には allowlist 制御がある。
 - `spec_generation_requested`
 - `spec_generation_succeeded`
 - `spec_generation_failed`
+- `notion_spec_creation_requested`
+- `notion_spec_creation_succeeded`
+- `notion_spec_creation_failed`
+- `notion_spec_creation_apply_denied`
 - `github_issue_creation_requested`
 - `github_issue_creation_succeeded`
 - `github_issue_creation_failed`
@@ -441,6 +476,7 @@ DISCORD_ALLOWED_CHANNEL_IDS=
 DISCORD_ALLOWED_USER_IDS=
 DISCORD_SYNC_APPLY_CHANNEL_IDS=
 DISCORD_ISSUE_APPLY_CHANNEL_IDS=
+DISCORD_NOTION_APPLY_CHANNEL_IDS=
 GITHUB_TOKEN=
 ```
 
@@ -455,6 +491,7 @@ GITHUB_TOKEN=
 - `DISCORD_ALLOWED_*`: Bot 利用許可範囲
 - `DISCORD_SYNC_APPLY_CHANNEL_IDS`: `dry_run:false` 許可チャンネル
 - `DISCORD_ISSUE_APPLY_CHANNEL_IDS`: Issue 作成本実行の許可チャンネル
+- `DISCORD_NOTION_APPLY_CHANNEL_IDS`: Notion Spec 作成本実行の許可チャンネル
 - `GITHUB_TOKEN`: GitHub Issue 作成に使う token
 
 ## Operational Notes
@@ -477,4 +514,5 @@ GITHUB_TOKEN=
 8. 新規企画は `/codex-generate-proposal`
 9. 起票下書きは `/codex-generate-issue-seeds`
 10. spec draft は `/codex-generate-spec`
-11. GitHub 実起票は `/codex-create-issues-from-seeds`
+11. Notion Spec 作成は `/codex-create-spec-in-notion`
+12. GitHub 実起票は `/codex-create-issues-from-seeds`

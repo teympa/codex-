@@ -31,6 +31,7 @@
 - 企画書ドラフトから GitHub Issue 下書きを CLI と Discord から生成できる導線を追加済み
 - Issue 下書きから GitHub Issue を dry-run / apply で作成できる導線を CLI と Discord に追加済み
 - 企画書ドラフトから spec draft を CLI と Discord で生成できる導線を追加済み
+- spec draft から Notion `Specs` page を dry-run / apply で作成できる導線を CLI と Discord に追加済み
 
 ### Incomplete Items
 
@@ -41,7 +42,7 @@
 
 ### Next Priority
 
-- spec draft を Notion `Specs` に寄せる実運用手順を固める
+- Notion `Specs` 作成と GitHub / Notion 同期を含む実運用手順を固める
 
 ## Active Deliverables
 
@@ -78,7 +79,7 @@
 
 ## Immediate Next Steps
 
-1. 生成した spec draft を Notion `Specs` に寄せる流れを定義する
+1. `NOTION_API_TOKEN` を使った Notion `Specs` 本実行フローを確認する
 2. `GITHUB_TOKEN` を使った本実行フローを確認する
 3. `Specs` / `Notes` の運用テンプレートを企画フローに合わせて見直す
 4. 必要なら proposal / spec / issue-seeds / issue-creation コマンドの入力項目を拡張する
@@ -129,6 +130,7 @@
 - 2026-04-23: 企画書ドラフトの `GitHub Issue Seeds` から Issue 下書きを CLI と Discord で生成できるようにする
 - 2026-04-23: Issue 下書きから GitHub Issue を CLI と Discord で作成できるようにする
 - 2026-04-23: 企画書ドラフトから spec draft を CLI と Discord で生成できるようにする
+- 2026-04-23: spec draft から Notion `Specs` page を CLI と Discord で作成できるようにする
 
 ## References
 
@@ -163,6 +165,7 @@
 - 企画書ドラフトから Issue 下書き生成も CLI と Discord の両方から使える
 - GitHub 実 Issue 化も CLI と Discord の両方から使える
 - spec draft 生成も CLI と Discord の両方から使える
+- Notion `Specs` page 作成も CLI と Discord の両方から使える
 - 次回は Notion `Specs` 連携と GitHub / Notion 同期まで含めた実運用を固める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する

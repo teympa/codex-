@@ -41,6 +41,10 @@ const CREATE_GITHUB_ISSUES_SCRIPT_PATH = path.resolve(
   __dirname,
   "create-github-issues-from-seeds.js"
 );
+const CREATE_NOTION_SPEC_SCRIPT_PATH = path.resolve(
+  __dirname,
+  "create-notion-spec-from-draft.js"
+);
 const pendingConfirmations = new Map();
 const MAX_DISCORD_MESSAGE = 1900;
 const PENDING_CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -58,6 +62,9 @@ const ALLOWED_USER_IDS = parseIdSet(process.env.DISCORD_ALLOWED_USER_IDS);
 const SYNC_APPLY_CHANNEL_IDS = parseIdSet(process.env.DISCORD_SYNC_APPLY_CHANNEL_IDS);
 const ISSUE_APPLY_CHANNEL_IDS = parseIdSet(
   process.env.DISCORD_ISSUE_APPLY_CHANNEL_IDS ?? process.env.DISCORD_SYNC_APPLY_CHANNEL_IDS
+);
+const NOTION_APPLY_CHANNEL_IDS = parseIdSet(
+  process.env.DISCORD_NOTION_APPLY_CHANNEL_IDS ?? process.env.DISCORD_SYNC_APPLY_CHANNEL_IDS
 );
 
 function parseIdSet(rawValue) {
@@ -449,6 +456,7 @@ function buildEnvironmentSummary(interaction) {
     `- DISCORD_ALLOWED_USER_IDS: ${formatIdSet(ALLOWED_USER_IDS)}`,
     `- DISCORD_SYNC_APPLY_CHANNEL_IDS: ${formatIdSet(SYNC_APPLY_CHANNEL_IDS)}`,
     `- DISCORD_ISSUE_APPLY_CHANNEL_IDS: ${formatIdSet(ISSUE_APPLY_CHANNEL_IDS)}`,
+    `- DISCORD_NOTION_APPLY_CHANNEL_IDS: ${formatIdSet(NOTION_APPLY_CHANNEL_IDS)}`,
   ].join("\n");
 }
 
@@ -507,6 +515,37 @@ function canApplyIssueCreation(interaction) {
 function buildIssueCreationDeniedReply(reason) {
   return [
     "GitHub Issue 作成の本実行はこの条件では許可されていません。",
+    "",
+    reason,
+    "",
+    "まずは `dry_run:true` で確認してください。",
+  ].join("\n");
+}
+
+function canApplyNotionSpecCreation(interaction) {
+  if (NOTION_APPLY_CHANNEL_IDS.size === 0) {
+    return {
+      allowed: false,
+      reason: "DISCORD_NOTION_APPLY_CHANNEL_IDS が未設定です。",
+    };
+  }
+
+  if (!interaction.channelId || !NOTION_APPLY_CHANNEL_IDS.has(interaction.channelId)) {
+    return {
+      allowed: false,
+      reason: "このチャンネルでは Notion Spec 作成を本実行できません。",
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: "",
+  };
+}
+
+function buildNotionSpecCreationDeniedReply(reason) {
+  return [
+    "Notion Spec 作成の本実行はこの条件では許可されていません。",
     "",
     reason,
     "",
@@ -803,6 +842,70 @@ async function handleSpecGeneration(interaction) {
       trimForDiscord(
         [
           "Spec draft 生成でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
+async function handleNotionSpecCreation(interaction, dryRun) {
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  const specFile = interaction.options.getString("spec_file", true);
+  const args = ["--file", specFile];
+  if (!dryRun) {
+    args.push("--apply");
+  }
+
+  appendCommandLog({
+    event: "notion_spec_creation_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    specFile,
+    dryRun,
+  });
+
+  try {
+    const output = await runNodeScript(CREATE_NOTION_SPEC_SCRIPT_PATH, args);
+
+    appendCommandLog({
+      event: "notion_spec_creation_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      specFile,
+      dryRun,
+      resultPreview: trimForDiscord(output),
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          dryRun ? "Notion Spec 作成 dry-run が完了しました。" : "Notion Spec 作成が完了しました。",
+          "",
+          "```",
+          output,
+          "```",
+        ].join("\n")
+      )
+    );
+  } catch (error) {
+    appendCommandLog({
+      event: "notion_spec_creation_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      specFile,
+      dryRun,
+      error: error.message,
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "Notion Spec 作成でエラーが発生しました。",
           "",
           error.message,
         ].join("\n")
@@ -1123,6 +1226,21 @@ const commands = [
         .setRequired(true)
     ),
   new SlashCommandBuilder()
+    .setName("codex-create-spec-in-notion")
+    .setDescription("spec draft から Notion Specs に page を作成する")
+    .addStringOption((option) =>
+      option
+        .setName("spec_file")
+        .setDescription("drafts/specs 配下の spec ファイル名")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("作成はせず確認だけ行う")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
     .setName("codex-create-issues-from-seeds")
     .setDescription("Issue 下書き Markdown から GitHub Issue を作成する")
     .addStringOption((option) =>
@@ -1379,6 +1497,30 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === "codex-generate-spec") {
     await handleSpecGeneration(interaction);
+    return;
+  }
+
+  if (interaction.commandName === "codex-create-spec-in-notion") {
+    const dryRun = interaction.options.getBoolean("dry_run") ?? true;
+    if (!dryRun) {
+      const applyAccess = canApplyNotionSpecCreation(interaction);
+      if (!applyAccess.allowed) {
+        appendCommandLog({
+          event: "notion_spec_creation_apply_denied",
+          commandName: interaction.commandName,
+          userTag: interaction.user.tag,
+          channelId: interaction.channelId,
+          reason: applyAccess.reason,
+        });
+        await interaction.reply({
+          content: buildNotionSpecCreationDeniedReply(applyAccess.reason),
+          ephemeral: REPLY_EPHEMERAL,
+        });
+        return;
+      }
+    }
+
+    await handleNotionSpecCreation(interaction, dryRun);
     return;
   }
 
