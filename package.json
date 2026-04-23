@@ -10,7 +10,8 @@
     "register:commands": "node src/register-commands.js",
     "sync:tasks": "node src/sync-tasks.js",
     "sync:tasks:dry": "node src/sync-tasks.js --dry-run",
-    "generate:proposal": "node src/generate-proposal.js"
+    "generate:proposal": "node src/generate-proposal.js",
+    "generate:issue-seeds": "node src/generate-issue-seeds.js"
   },
   "engines": {
     "node": ">=20"

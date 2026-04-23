@@ -28,6 +28,7 @@
 - Discord Bot の確認待ちアクションを `runtime/pending-confirmations.json` に永続化済み
 - GitHub Issue から Notion `Tasks` への半自動同期スクリプトを追加済み
 - ゲーム企画書ドラフトを CLI と Discord から生成できる初期導線を追加済み
+- 企画書ドラフトから GitHub Issue 下書きを CLI と Discord から生成できる導線を追加済み
 
 ### Incomplete Items
 
@@ -38,7 +39,7 @@
 
 ### Next Priority
 
-- 生成した企画書ドラフトを Notion `Specs` と GitHub Issue 分解へつなげる
+- 生成した企画書ドラフトを Notion `Specs` と GitHub 実 Issue 化へつなげる
 
 ## Active Deliverables
 
@@ -76,9 +77,9 @@
 ## Immediate Next Steps
 
 1. 生成したドラフトを Notion `Specs` に寄せる流れを定義する
-2. 企画書ドラフトから GitHub Issue Seeds を実 Issue 化する流れを設計する
+2. 生成した Issue 下書きを GitHub 実 Issue に流し込む手順を固める
 3. `Specs` / `Notes` の運用テンプレートを企画フローに合わせて見直す
-4. 必要なら `/codex-generate-proposal` の入力項目を拡張する
+4. 必要なら `/codex-generate-proposal` と `/codex-generate-issue-seeds` の入力項目を拡張する
 
 ## Actionable Tasks (2026-04-21)
 
@@ -123,6 +124,7 @@
 - 2026-04-22: `.env` に入れる実運用値確認用に `/codex-env` を追加する
 - 2026-04-22: Phase 3 の入口として、ゲーム企画書ドラフトをローカル Markdown で自動生成できるようにする
 - 2026-04-23: Discord から `/codex-generate-proposal` でゲーム企画書ドラフトを生成できるようにする
+- 2026-04-23: 企画書ドラフトの `GitHub Issue Seeds` から Issue 下書きを CLI と Discord で生成できるようにする
 
 ## References
 
@@ -154,7 +156,8 @@
 - `sync:tasks` の本実行チャンネル制限まで入った
 - `.env` 反映前に使える `/codex-env` まで入った
 - 企画書ドラフト生成は CLI と Discord の両方から使える
-- 次回は企画書ドラフト生成から `Specs` / Issue 分解へつながる流れを固める
+- 企画書ドラフトから Issue 下書き生成も CLI と Discord の両方から使える
+- 次回は Issue 下書き生成から GitHub 実 Issue 化、`Specs` 連携へつながる流れを固める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
 - Discord 実装は安全面の基礎が入ったので、次は運用自動化に寄せる

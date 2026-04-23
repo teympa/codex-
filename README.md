@@ -93,6 +93,7 @@ Node.js 20 以上で、最小の Discord Bot を起動できます。
 - `/codex-log`
 - `/codex-env`
 - `/codex-generate-proposal`
+- `/codex-generate-issue-seeds`
 
 セットアップ:
 
@@ -185,3 +186,4 @@ Discord からも生成できます。
 詳細:
 
 - `docs/proposal-template-generator.md`
+- `docs/proposal-issue-seeds.md`

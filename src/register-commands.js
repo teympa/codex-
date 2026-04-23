@@ -109,6 +109,15 @@ const commands = [
         .setDescription("solo / co-op / multiplayer など")
         .setRequired(false)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-generate-issue-seeds")
+    .setDescription("企画書ドラフトから GitHub Issue 下書きを生成する")
+    .addStringOption((option) =>
+      option
+        .setName("proposal_file")
+        .setDescription("drafts/proposals 配下の proposal ファイル名")
+        .setRequired(true)
+    ),
 ].map((command) => command.toJSON());
 
 async function main() {

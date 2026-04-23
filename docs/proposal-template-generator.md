@@ -75,6 +75,16 @@ Discord から始める場合:
 3. ローカルの `drafts/proposals/` を開いて内容を詰める
 4. 必要なら `/codex` で「この企画書から Issue を分解して」と指示する
 
+Issue 下書きまで進める場合:
+
+```bash
+npm run generate:issue-seeds -- --file 20260423-project-name.md
+```
+
+```text
+/codex-generate-issue-seeds proposal_file:20260423-project-name.md
+```
+
 ## Notes
 
 - 同じ日付と同じ title で同名ファイルが既にある場合は上書きしない

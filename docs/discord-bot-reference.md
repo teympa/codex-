@@ -18,6 +18,7 @@ Last updated: 2026-04-22
 - `/codex-log`
 - `/codex-env`
 - `/codex-generate-proposal`
+- `/codex-generate-issue-seeds`
 
 ## Command Reference
 
@@ -270,6 +271,32 @@ Last updated: 2026-04-22
 - 実体は `src/generate-proposal.js` を呼び出す
 - 生成後は Notion `Specs` や GitHub Issue への分解に進める
 
+### `/codex-generate-issue-seeds`
+
+用途:
+
+- 企画書ドラフトの `GitHub Issue Seeds` から Issue 下書き Markdown を生成する
+
+入力:
+
+- `proposal_file` 必須
+
+例:
+
+```text
+/codex-generate-issue-seeds proposal_file:20260423-neon-courier.md
+```
+
+出力:
+
+- `drafts/issue-seeds/YYYYMMDD-project-name-issue-seeds.md`
+
+補足:
+
+- `drafts/proposals/` 配下のファイル名を指定する
+- `GitHub Issue Seeds` セクションにチェックボックス行が必要
+- 実体は `src/generate-issue-seeds.js` を呼び出す
+
 ## Visibility
 
 表示設定は `.env` の `DISCORD_REPLY_EPHEMERAL` に従う。
@@ -329,6 +356,9 @@ Bot には allowlist 制御がある。
 - `proposal_generation_requested`
 - `proposal_generation_succeeded`
 - `proposal_generation_failed`
+- `issue_seed_generation_requested`
+- `issue_seed_generation_succeeded`
+- `issue_seed_generation_failed`
 - `access_denied`
 
 ## Environment Variables
@@ -377,3 +407,4 @@ DISCORD_SYNC_APPLY_CHANNEL_IDS=
 6. 挙動確認は `/codex-log`
 7. 設定確認は `/codex-env`
 8. 新規企画は `/codex-generate-proposal`
+9. 起票下書きは `/codex-generate-issue-seeds`
