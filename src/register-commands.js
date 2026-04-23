@@ -118,6 +118,21 @@ const commands = [
         .setDescription("drafts/proposals 配下の proposal ファイル名")
         .setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-create-issues-from-seeds")
+    .setDescription("Issue 下書き Markdown から GitHub Issue を作成する")
+    .addStringOption((option) =>
+      option
+        .setName("issue_seed_file")
+        .setDescription("drafts/issue-seeds 配下の issue seed ファイル名")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("作成はせず確認だけ行う")
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 async function main() {

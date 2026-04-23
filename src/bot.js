@@ -36,6 +36,10 @@ const PENDING_CONFIRMATIONS_PATH = path.join(
 const SYNC_TASKS_SCRIPT_PATH = path.resolve(__dirname, "sync-tasks.js");
 const GENERATE_PROPOSAL_SCRIPT_PATH = path.resolve(__dirname, "generate-proposal.js");
 const GENERATE_ISSUE_SEEDS_SCRIPT_PATH = path.resolve(__dirname, "generate-issue-seeds.js");
+const CREATE_GITHUB_ISSUES_SCRIPT_PATH = path.resolve(
+  __dirname,
+  "create-github-issues-from-seeds.js"
+);
 const pendingConfirmations = new Map();
 const MAX_DISCORD_MESSAGE = 1900;
 const PENDING_CONFIRMATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -51,6 +55,9 @@ const ALLOWED_GUILD_IDS = parseIdSet(
 const ALLOWED_CHANNEL_IDS = parseIdSet(process.env.DISCORD_ALLOWED_CHANNEL_IDS);
 const ALLOWED_USER_IDS = parseIdSet(process.env.DISCORD_ALLOWED_USER_IDS);
 const SYNC_APPLY_CHANNEL_IDS = parseIdSet(process.env.DISCORD_SYNC_APPLY_CHANNEL_IDS);
+const ISSUE_APPLY_CHANNEL_IDS = parseIdSet(
+  process.env.DISCORD_ISSUE_APPLY_CHANNEL_IDS ?? process.env.DISCORD_SYNC_APPLY_CHANNEL_IDS
+);
 
 function parseIdSet(rawValue) {
   if (!rawValue) {
@@ -440,6 +447,7 @@ function buildEnvironmentSummary(interaction) {
     `- DISCORD_ALLOWED_CHANNEL_IDS: ${formatIdSet(ALLOWED_CHANNEL_IDS)}`,
     `- DISCORD_ALLOWED_USER_IDS: ${formatIdSet(ALLOWED_USER_IDS)}`,
     `- DISCORD_SYNC_APPLY_CHANNEL_IDS: ${formatIdSet(SYNC_APPLY_CHANNEL_IDS)}`,
+    `- DISCORD_ISSUE_APPLY_CHANNEL_IDS: ${formatIdSet(ISSUE_APPLY_CHANNEL_IDS)}`,
   ].join("\n");
 }
 
@@ -467,6 +475,37 @@ function canApplyTaskSync(interaction) {
 function buildTaskSyncApplyDeniedReply(reason) {
   return [
     "GitHub / Notion Tasks 同期の本実行はこの条件では許可されていません。",
+    "",
+    reason,
+    "",
+    "まずは `dry_run:true` で確認してください。",
+  ].join("\n");
+}
+
+function canApplyIssueCreation(interaction) {
+  if (ISSUE_APPLY_CHANNEL_IDS.size === 0) {
+    return {
+      allowed: false,
+      reason: "DISCORD_ISSUE_APPLY_CHANNEL_IDS が未設定です。",
+    };
+  }
+
+  if (!interaction.channelId || !ISSUE_APPLY_CHANNEL_IDS.has(interaction.channelId)) {
+    return {
+      allowed: false,
+      reason: "このチャンネルでは GitHub Issue 作成を本実行できません。",
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: "",
+  };
+}
+
+function buildIssueCreationDeniedReply(reason) {
+  return [
+    "GitHub Issue 作成の本実行はこの条件では許可されていません。",
     "",
     reason,
     "",
@@ -701,6 +740,70 @@ async function handleIssueSeedGeneration(interaction) {
       trimForDiscord(
         [
           "Issue 下書き生成でエラーが発生しました。",
+          "",
+          error.message,
+        ].join("\n")
+      )
+    );
+  }
+}
+
+async function handleGithubIssueCreation(interaction, dryRun) {
+  await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
+  const issueSeedFile = interaction.options.getString("issue_seed_file", true);
+  const args = ["--file", issueSeedFile];
+  if (!dryRun) {
+    args.push("--apply");
+  }
+
+  appendCommandLog({
+    event: "github_issue_creation_requested",
+    commandName: interaction.commandName,
+    userTag: interaction.user.tag,
+    channelId: interaction.channelId,
+    issueSeedFile,
+    dryRun,
+  });
+
+  try {
+    const output = await runNodeScript(CREATE_GITHUB_ISSUES_SCRIPT_PATH, args);
+
+    appendCommandLog({
+      event: "github_issue_creation_succeeded",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      issueSeedFile,
+      dryRun,
+      resultPreview: trimForDiscord(output),
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          dryRun ? "GitHub Issue 作成 dry-run が完了しました。" : "GitHub Issue 作成が完了しました。",
+          "",
+          "```",
+          output,
+          "```",
+        ].join("\n")
+      )
+    );
+  } catch (error) {
+    appendCommandLog({
+      event: "github_issue_creation_failed",
+      commandName: interaction.commandName,
+      userTag: interaction.user.tag,
+      channelId: interaction.channelId,
+      issueSeedFile,
+      dryRun,
+      error: error.message,
+    });
+
+    await interaction.editReply(
+      trimForDiscord(
+        [
+          "GitHub Issue 作成でエラーが発生しました。",
           "",
           error.message,
         ].join("\n")
@@ -947,6 +1050,21 @@ const commands = [
         .setDescription("drafts/proposals 配下の proposal ファイル名")
         .setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName("codex-create-issues-from-seeds")
+    .setDescription("Issue 下書き Markdown から GitHub Issue を作成する")
+    .addStringOption((option) =>
+      option
+        .setName("issue_seed_file")
+        .setDescription("drafts/issue-seeds 配下の issue seed ファイル名")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dry_run")
+        .setDescription("作成はせず確認だけ行う")
+        .setRequired(false)
+    ),
 ].map((command) => command.toJSON());
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -1184,6 +1302,30 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === "codex-generate-issue-seeds") {
     await handleIssueSeedGeneration(interaction);
+    return;
+  }
+
+  if (interaction.commandName === "codex-create-issues-from-seeds") {
+    const dryRun = interaction.options.getBoolean("dry_run") ?? true;
+    if (!dryRun) {
+      const applyAccess = canApplyIssueCreation(interaction);
+      if (!applyAccess.allowed) {
+        appendCommandLog({
+          event: "github_issue_creation_apply_denied",
+          commandName: interaction.commandName,
+          userTag: interaction.user.tag,
+          channelId: interaction.channelId,
+          reason: applyAccess.reason,
+        });
+        await interaction.reply({
+          content: buildIssueCreationDeniedReply(applyAccess.reason),
+          ephemeral: REPLY_EPHEMERAL,
+        });
+        return;
+      }
+    }
+
+    await handleGithubIssueCreation(interaction, dryRun);
   }
 });
 

@@ -85,6 +85,16 @@ npm run generate:issue-seeds -- --file 20260423-project-name.md
 /codex-generate-issue-seeds proposal_file:20260423-project-name.md
 ```
 
+GitHub Issue 作成まで進める場合:
+
+```bash
+npm run create:github-issues -- --file 20260423-project-name-issue-seeds.md
+```
+
+```text
+/codex-create-issues-from-seeds issue_seed_file:20260423-project-name-issue-seeds.md
+```
+
 ## Notes
 
 - 同じ日付と同じ title で同名ファイルが既にある場合は上書きしない

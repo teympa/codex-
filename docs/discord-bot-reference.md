@@ -19,6 +19,7 @@ Last updated: 2026-04-22
 - `/codex-env`
 - `/codex-generate-proposal`
 - `/codex-generate-issue-seeds`
+- `/codex-create-issues-from-seeds`
 
 ## Command Reference
 
@@ -297,6 +298,36 @@ Last updated: 2026-04-22
 - `GitHub Issue Seeds` セクションにチェックボックス行が必要
 - 実体は `src/generate-issue-seeds.js` を呼び出す
 
+### `/codex-create-issues-from-seeds`
+
+用途:
+
+- Issue 下書き Markdown から GitHub Issue を作成する
+
+入力:
+
+- `issue_seed_file` 必須
+- `dry_run` 任意
+
+例:
+
+```text
+/codex-create-issues-from-seeds issue_seed_file:20260423-neon-courier-issue-seeds.md
+/codex-create-issues-from-seeds issue_seed_file:20260423-neon-courier-issue-seeds.md dry_run:false
+```
+
+挙動:
+
+- 既定は `dry_run:true`
+- `dry_run:true` では作成予定タイトル一覧を返す
+- `dry_run:false` では GitHub Issue を実際に作成する
+
+補足:
+
+- 本実行には `GITHUB_TOKEN` が必要
+- `dry_run:false` は `DISCORD_ISSUE_APPLY_CHANNEL_IDS` のチャンネルだけ許可する
+- 実体は `src/create-github-issues-from-seeds.js` を呼び出す
+
 ## Visibility
 
 表示設定は `.env` の `DISCORD_REPLY_EPHEMERAL` に従う。
@@ -359,6 +390,10 @@ Bot には allowlist 制御がある。
 - `issue_seed_generation_requested`
 - `issue_seed_generation_succeeded`
 - `issue_seed_generation_failed`
+- `github_issue_creation_requested`
+- `github_issue_creation_succeeded`
+- `github_issue_creation_failed`
+- `github_issue_creation_apply_denied`
 - `access_denied`
 
 ## Environment Variables
@@ -376,6 +411,8 @@ DISCORD_ALLOWED_GUILD_IDS=
 DISCORD_ALLOWED_CHANNEL_IDS=
 DISCORD_ALLOWED_USER_IDS=
 DISCORD_SYNC_APPLY_CHANNEL_IDS=
+DISCORD_ISSUE_APPLY_CHANNEL_IDS=
+GITHUB_TOKEN=
 ```
 
 意味:
@@ -388,6 +425,8 @@ DISCORD_SYNC_APPLY_CHANNEL_IDS=
 - `DISCORD_CODEX_EXEC_MODE`: `read-only` または `bypass`
 - `DISCORD_ALLOWED_*`: Bot 利用許可範囲
 - `DISCORD_SYNC_APPLY_CHANNEL_IDS`: `dry_run:false` 許可チャンネル
+- `DISCORD_ISSUE_APPLY_CHANNEL_IDS`: Issue 作成本実行の許可チャンネル
+- `GITHUB_TOKEN`: GitHub Issue 作成に使う token
 
 ## Operational Notes
 
@@ -408,3 +447,4 @@ DISCORD_SYNC_APPLY_CHANNEL_IDS=
 7. 設定確認は `/codex-env`
 8. 新規企画は `/codex-generate-proposal`
 9. 起票下書きは `/codex-generate-issue-seeds`
+10. GitHub 実起票は `/codex-create-issues-from-seeds`
