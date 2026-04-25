@@ -26,6 +26,12 @@ npm run apply:bootstrap -- --title "Project Name"
 /codex-apply-bootstrap title:Project Name
 ```
 
+必要なら bootstrap 後に生成済みファイルを直接指定して反映できる:
+
+```text
+/codex-apply-bootstrap spec_file:20260424-project-name-spec.md issue_seed_file:20260424-project-name-issue-seeds.md
+```
+
 ## Output
 
 まとめて生成されるもの:
@@ -51,6 +57,16 @@ npm run apply:bootstrap -- --title "Project Name"
 3. spec draft を詰める
 4. issue seeds を確認する
 5. 必要なら GitHub Issue と Notion `Specs` へ流す
+
+## Recommended Operation
+
+1. `npm run bootstrap:project -- --title "Project Name"` で下書きを生成する
+2. `drafts/proposals/` の proposal を確認する
+3. `drafts/specs/` の spec draft を確認する
+4. `drafts/issue-seeds/` の Issue seeds を確認する
+5. `npm run apply:bootstrap -- --title "Project Name"` で dry-run する
+6. dry-run の Notion / GitHub preview を確認する
+7. 問題がなければ `npm run apply:bootstrap -- --title "Project Name" --apply` を実行する
 
 ## Notes
 

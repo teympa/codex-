@@ -188,6 +188,14 @@ Discord からも生成できます。
 /codex-generate-proposal title:Project Name
 ```
 
+Bootstrap flow:
+
+```bash
+npm run bootstrap:project -- --title "Project Name"
+npm run apply:bootstrap -- --title "Project Name"
+npm run apply:bootstrap -- --title "Project Name" --apply
+```
+
 詳細:
 
 - `docs/proposal-template-generator.md`
@@ -197,3 +205,4 @@ Discord からも生成できます。
 - `docs/notion-spec-creation-from-draft.md`
 - `docs/project-bootstrap-flow.md`
 - `docs/project-bootstrap-apply-flow.md`
+`/codex-apply-bootstrap` は、`title` から最新の spec / issue seeds を解決するか、`spec_file` と `issue_seed_file` を直接指定して使えます。

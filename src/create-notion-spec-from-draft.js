@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
+const ROOT_DIR = path.resolve(__dirname, "..");
 const STATUS_SOURCES_PATH = path.resolve(__dirname, "..", "config", "status-sources.json");
 const SPECS_DIR = path.resolve(__dirname, "..", "drafts", "specs");
 const NOTION_API_VERSION = "2022-06-28";
@@ -226,6 +227,18 @@ function toNotionBlocks(lines) {
   return blocks.slice(0, 100);
 }
 
+function relativePath(filePath) {
+  return path.relative(ROOT_DIR, filePath) || filePath;
+}
+
+function previewLines(markdown) {
+  return markdown
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 function printUsage() {
   console.log(
     [
@@ -261,11 +274,16 @@ async function main() {
   const children = toNotionBlocks(lines);
 
   if (!APPLY_MODE) {
-    console.log(`Dry run for Notion spec creation`);
-    console.log(`- database: ${sources.notion.specsDatabaseUrl}`);
+    console.log("[dry-run] create Notion spec");
     console.log(`- title: ${title}`);
-    console.log(`- source file: ${path.relative(path.resolve(__dirname, ".."), specPath)}`);
+    console.log(`- source file: ${relativePath(specPath)}`);
+    console.log("- database: Specs");
+    console.log("- body preview:");
+    for (const line of previewLines(text)) {
+      console.log(`  ${line}`);
+    }
     console.log(`- blocks: ${children.length}`);
+    console.log(`- database url: ${sources.notion.specsDatabaseUrl}`);
     return;
   }
 
@@ -280,7 +298,10 @@ async function main() {
     }),
   });
 
-  console.log(`Created Notion spec page: ${result.url}`);
+  console.log(`created Notion spec: ${title}`);
+  if (result.url) {
+    console.log(result.url);
+  }
 }
 
 main().catch((error) => {

@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
+const ROOT_DIR = path.resolve(__dirname, "..");
 const STATUS_SOURCES_PATH = path.resolve(__dirname, "..", "config", "status-sources.json");
 const ISSUE_SEEDS_DIR = path.resolve(__dirname, "..", "drafts", "issue-seeds");
 const DRY_RUN = !process.argv.includes("--apply");
@@ -68,6 +69,7 @@ function parseIssueSeedMarkdown(text) {
     if (current && current.title && current.bodyLines.length > 0) {
       issues.push({
         title: current.title,
+        labels: current.labels,
         body: current.bodyLines.join("\n").trim(),
       });
     }
@@ -78,6 +80,7 @@ function parseIssueSeedMarkdown(text) {
       finalizeCurrent();
       current = {
         title: "",
+        labels: [],
         bodyLines: [],
       };
       section = null;
@@ -99,11 +102,28 @@ function parseIssueSeedMarkdown(text) {
       continue;
     }
 
+    if (line.trim() === "**Suggested Labels**") {
+      section = "labels";
+      continue;
+    }
+
     if (section === "title") {
       if (!line.trim()) {
         continue;
       }
       current.title = line.trim();
+      section = null;
+      continue;
+    }
+
+    if (section === "labels") {
+      if (!line.trim()) {
+        continue;
+      }
+      current.labels = line
+        .split(",")
+        .map((label) => label.trim())
+        .filter(Boolean);
       section = null;
       continue;
     }
@@ -140,6 +160,7 @@ async function createIssue(repository, issue) {
     body: JSON.stringify({
       title: issue.title,
       body: issue.body,
+      ...(issue.labels.length > 0 ? { labels: issue.labels } : {}),
     }),
   });
 
@@ -149,6 +170,19 @@ async function createIssue(repository, issue) {
   }
 
   return data;
+}
+
+function relativePath(filePath) {
+  return path.relative(ROOT_DIR, filePath) || filePath;
+}
+
+function previewText(value, maxLength = 160) {
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (compact.length <= maxLength) {
+    return compact;
+  }
+
+  return `${compact.slice(0, maxLength - 3)}...`;
 }
 
 function printUsage() {
@@ -187,10 +221,12 @@ async function main() {
   const repository = sources.github.repository;
 
   if (DRY_RUN) {
-    console.log(`Dry run for ${issues.length} issue(s) in ${repository}`);
+    console.log(`[dry-run] create GitHub issues from ${relativePath(filePath)}`);
+    console.log(`- repository: ${repository}`);
     for (const [index, issue] of issues.entries()) {
-      console.log("");
-      console.log(`${String(index + 1).padStart(2, "0")}. ${issue.title}`);
+      console.log(`- #${index + 1} ${issue.title}`);
+      console.log(`  labels: ${issue.labels.length > 0 ? issue.labels.join(", ") : "none"}`);
+      console.log(`  body: ${previewText(issue.body)}`);
     }
     return;
   }
@@ -205,10 +241,9 @@ async function main() {
     });
   }
 
-  console.log(`Created ${created.length} issue(s) in ${repository}`);
+  console.log("created GitHub issues");
   for (const issue of created) {
-    console.log(`- #${issue.number} ${issue.title}`);
-    console.log(`  ${issue.url}`);
+    console.log(`- #${issue.number} ${issue.title} ${issue.url}`);
   }
 }
 
