@@ -99,6 +99,31 @@ async function queryAllTaskPages(databaseId) {
   return results;
 }
 
+async function queryAllProjectPages(databaseId) {
+  const results = [];
+  let hasMore = true;
+  let nextCursor = undefined;
+
+  while (hasMore) {
+    const data = await notionRequest(
+      `https://api.notion.com/v1/databases/${databaseId}/query`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          page_size: 100,
+          start_cursor: nextCursor,
+        }),
+      }
+    );
+
+    results.push(...data.results);
+    hasMore = data.has_more;
+    nextCursor = data.next_cursor;
+  }
+
+  return results;
+}
+
 function getTaskTitle(properties) {
   const titleProp = properties.Task;
   if (!titleProp || titleProp.type !== "title") {
@@ -106,6 +131,44 @@ function getTaskTitle(properties) {
   }
 
   return titleProp.title.map((part) => part.plain_text).join("") || "(untitled)";
+}
+
+function getProjectTitle(properties) {
+  const titleProp = properties.Name;
+  if (!titleProp || titleProp.type !== "title") {
+    return "(untitled)";
+  }
+
+  return titleProp.title.map((part) => part.plain_text).join("") || "(untitled)";
+}
+
+function buildProjectsByName(projectPages) {
+  const projectsByName = new Map();
+  for (const page of projectPages) {
+    projectsByName.set(getProjectTitle(page.properties).toLowerCase(), page);
+  }
+  return projectsByName;
+}
+
+function findProjectMapping(sources) {
+  const mappings = Array.isArray(sources.notion?.projectMappings)
+    ? sources.notion.projectMappings
+    : [];
+
+  return mappings.find(
+    (mapping) =>
+      String(mapping.repository || "").toLowerCase() ===
+      String(sources.github.repository || "").toLowerCase()
+  );
+}
+
+function resolveDefaultProject(sources, projectsByName) {
+  const mapping = findProjectMapping(sources);
+  if (!mapping?.projectName) {
+    return null;
+  }
+
+  return projectsByName.get(mapping.projectName.toLowerCase()) || null;
 }
 
 function extractLabelNames(issue) {
@@ -244,6 +307,41 @@ function readRichText(prop) {
   return (prop?.rich_text || []).map((part) => part.plain_text).join("");
 }
 
+function hasProjectRelation(page) {
+  return (page.properties.Project?.relation || []).length > 0;
+}
+
+function addProjectRelation(properties, projectPage) {
+  if (!projectPage) {
+    return properties;
+  }
+
+  return {
+    ...properties,
+    Project: {
+      relation: [
+        {
+          id: projectPage.id,
+        },
+      ],
+    },
+  };
+}
+
+function preserveUnmappedSelectsForUpdate(properties) {
+  const nextProperties = { ...properties };
+
+  if (!nextProperties.Priority.select) {
+    delete nextProperties.Priority;
+  }
+
+  if (!nextProperties.Category.select) {
+    delete nextProperties.Category;
+  }
+
+  return nextProperties;
+}
+
 function propertiesDiffer(existingPage, desiredProperties) {
   const existing = existingPage.properties;
   const currentTitle = getTaskTitle(existing);
@@ -265,11 +363,17 @@ function propertiesDiffer(existingPage, desiredProperties) {
     return true;
   }
 
-  if (readSelectName(existing.Priority) !== (desiredProperties.Priority.select?.name || null)) {
+  if (
+    desiredProperties.Priority &&
+    readSelectName(existing.Priority) !== (desiredProperties.Priority.select?.name || null)
+  ) {
     return true;
   }
 
-  if (readSelectName(existing.Category) !== (desiredProperties.Category.select?.name || null)) {
+  if (
+    desiredProperties.Category &&
+    readSelectName(existing.Category) !== (desiredProperties.Category.select?.name || null)
+  ) {
     return true;
   }
 
@@ -281,14 +385,25 @@ function propertiesDiffer(existingPage, desiredProperties) {
     return true;
   }
 
+  if (
+    desiredProperties.Project &&
+    (existing.Project?.relation?.[0]?.id || null) !==
+      desiredProperties.Project.relation[0]?.id
+  ) {
+    return true;
+  }
+
   return false;
 }
 
-async function createTask(databaseId, issue) {
-  const properties = buildTaskProperties(issue);
+async function createTask(databaseId, issue, defaultProject) {
+  const properties = addProjectRelation(buildTaskProperties(issue), defaultProject);
 
   if (DRY_RUN) {
-    console.log(`[dry-run] create Notion task for issue #${issue.number} ${issue.title}`);
+    const projectNote = defaultProject
+      ? ` with Project ${getProjectTitle(defaultProject.properties)}`
+      : "";
+    console.log(`[dry-run] create Notion task for issue #${issue.number} ${issue.title}${projectNote}`);
     return;
   }
 
@@ -302,18 +417,29 @@ async function createTask(databaseId, issue) {
     }),
   });
 
-  console.log(`created Notion task for issue #${issue.number} ${issue.title}`);
+  const projectNote = defaultProject
+    ? ` with Project ${getProjectTitle(defaultProject.properties)}`
+    : "";
+  console.log(`created Notion task for issue #${issue.number} ${issue.title}${projectNote}`);
 }
 
-async function updateTask(pageId, issue, existingPage) {
-  const properties = buildTaskProperties(issue);
+async function updateTask(pageId, issue, existingPage, defaultProject) {
+  const shouldSetProject = defaultProject && !hasProjectRelation(existingPage);
+  const baseProperties = preserveUnmappedSelectsForUpdate(buildTaskProperties(issue));
+  const properties = shouldSetProject
+    ? addProjectRelation(baseProperties, defaultProject)
+    : baseProperties;
+
   if (!propertiesDiffer(existingPage, properties)) {
     console.log(`no change for issue #${issue.number} ${issue.title}`);
     return;
   }
 
   if (DRY_RUN) {
-    console.log(`[dry-run] update Notion task for issue #${issue.number} ${issue.title}`);
+    const projectNote = shouldSetProject
+      ? ` and set Project ${getProjectTitle(defaultProject.properties)}`
+      : "";
+    console.log(`[dry-run] update Notion task for issue #${issue.number} ${issue.title}${projectNote}`);
     return;
   }
 
@@ -322,16 +448,30 @@ async function updateTask(pageId, issue, existingPage) {
     body: JSON.stringify({ properties }),
   });
 
-  console.log(`updated Notion task for issue #${issue.number} ${issue.title}`);
+  const projectNote = shouldSetProject
+    ? ` and set Project ${getProjectTitle(defaultProject.properties)}`
+    : "";
+  console.log(`updated Notion task for issue #${issue.number} ${issue.title}${projectNote}`);
 }
 
 async function main() {
   const sources = readJson(STATUS_SOURCES_PATH);
-  const databaseId = extractIdFromNotionUrl(sources.notion.tasksDatabaseUrl);
-  const [issues, notionPages] = await Promise.all([
+  const tasksDatabaseId = extractIdFromNotionUrl(sources.notion.tasksDatabaseUrl);
+  const projectsDatabaseId = extractIdFromNotionUrl(sources.notion.projectsDatabaseUrl);
+  const [issues, notionPages, projectPages] = await Promise.all([
     fetchRepositoryIssues(sources.github.repository),
-    queryAllTaskPages(databaseId),
+    queryAllTaskPages(tasksDatabaseId),
+    queryAllProjectPages(projectsDatabaseId),
   ]);
+  const projectsByName = buildProjectsByName(projectPages);
+  const defaultProject = resolveDefaultProject(sources, projectsByName);
+  const mapping = findProjectMapping(sources);
+
+  if (mapping?.projectName && !defaultProject) {
+    console.log(
+      `Project mapping not found: ${mapping.projectName}. Project relation will not be auto-filled.`
+    );
+  }
 
   const pagesByIssueNumber = new Map();
   for (const page of notionPages) {
@@ -348,9 +488,9 @@ async function main() {
   for (const issue of issues) {
     const existingPage = pagesByIssueNumber.get(issue.number);
     if (existingPage) {
-      await updateTask(existingPage.id, issue, existingPage);
+      await updateTask(existingPage.id, issue, existingPage, defaultProject);
     } else {
-      await createTask(databaseId, issue);
+      await createTask(tasksDatabaseId, issue, defaultProject);
     }
   }
 }
