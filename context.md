@@ -40,6 +40,7 @@
 - `sync:tasks` を本実行し、GitHub Issue #7-#10 を Notion `Tasks` に作成済み
 - Discord slash commands を再登録し、Bot `チャッピー#1662` の起動 ready を確認済み
 - Discord の `/codex-bootstrap-project` と `/codex-apply-bootstrap` は、スマホ確認向けに日本語の短い要約表示へ変更済み
+- Notion `Tasks` の Issue #7-#10 は `Project = Codex Ops`、`Category = Ops` に整理済み
 
 ### Incomplete Items
 
@@ -89,8 +90,8 @@
 
 1. Discord から `/codex-bootstrap-project` と `/codex-apply-bootstrap` の日本語短縮表示を再確認する
 2. サンプル企画 `Bootstrap Resolution Sample` を残すか、検証用として削除するか判断する
-3. Notion `Tasks` に作成された Issue #7-#10 の Project relation や補足項目を必要に応じて整える
-4. 企画テンプレートの genre / platform / audience 入力項目を実運用に合わせて拡張する
+3. 企画テンプレートの genre / platform / audience 入力項目を実運用に合わせて拡張する
+4. 次の本物の企画で bootstrap -> apply -> sync の一連フローを試す
 
 ## Actionable Tasks (2026-04-21)
 
@@ -185,6 +186,7 @@
 - GitHub Issue #7-#10 は `sync:tasks` 本実行で Notion `Tasks` に作成済み
 - Discord Bot は起動 ready まで確認済み。次は Discord クライアント側から dry-run 表示を確認する
 - Discord の bootstrap / apply bootstrap 返信は CLI 詳細ログをそのまま出さず、日本語の要約だけを返す
+- Notion `Tasks` の Issue #7-#10 は `Codex Ops` project に紐づけ済みで、Category は `Ops`
 - 次回は Notion `Specs` 連携と GitHub / Notion 同期まで含めた実運用を固める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する
