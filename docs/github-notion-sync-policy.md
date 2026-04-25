@@ -23,11 +23,12 @@ GitHub から Notion に反映するもの:
 - 実行状態
 - 担当
 - 主要カテゴリ
+- 未設定時の Project relation
 
 Notion にのみ残すもの:
 
 - 横断一覧で見たい補足情報
-- Project との relation
+- 手動で調整した Project relation
 - 人間向けの整理用ビュー
 
 ## Task Mapping
@@ -39,6 +40,7 @@ Notion にのみ残すもの:
 - Issue URL -> `GitHub Issue URL`
 - Labels -> `Priority` `Category` `Source`
 - State / progress -> `Status`
+- Repository mapping -> `Project` relation when the task has no existing Project
 
 ### Recommended Status Mapping
 
@@ -148,13 +150,20 @@ Notion にのみ残すもの:
 - `Category`
 - `Source`
 - `Assignee`
+- `Project` relation when empty and a repository mapping exists
 
 同期しない内容:
 
-- `Project` relation
 - `Due Date`
 - `Estimate`
 - 補足メモ
+
+Project relation の自動補完:
+
+- `config/status-sources.json` の `notion.projectMappings` で repository と Project name を対応づける
+- 既存 Task に Project relation がある場合は上書きしない
+- 対応 Project が見つからない場合は Project 未設定のまま同期し、エラーにはしない
+- GitHub ラベルから `Priority` / `Category` を判断できない場合、既存 Task の手動値は保持する
 
 安全方針:
 
