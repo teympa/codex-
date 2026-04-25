@@ -34,6 +34,12 @@
 - spec draft から Notion `Specs` page を dry-run / apply で作成できる導線を CLI と Discord に追加済み
 - 新規企画の proposal / spec / issue seeds をまとめて起こすブートストラップ導線を CLI と Discord に追加済み
 - bootstrap 後の Notion / GitHub 反映をまとめて dry-run / apply できる導線を CLI と Discord に追加済み
+- `apply:bootstrap` はタイトルから最新生成物を解決するか、spec / issue-seeds のファイル名を明示して実行できる
+- bootstrap から Notion / GitHub 反映までの dry-run 表示、ファイル指定 alias、実運用手順を整理済み
+- `Bootstrap Resolution Sample` で `apply:bootstrap --apply` を実行し、Notion `Specs` page と GitHub Issue #7-#10 の作成に成功済み
+- `sync:tasks` を本実行し、GitHub Issue #7-#10 を Notion `Tasks` に作成済み
+- Discord slash commands を再登録し、Bot `チャッピー#1662` の起動 ready を確認済み
+- Discord の `/codex-bootstrap-project` と `/codex-apply-bootstrap` は、スマホ確認向けに日本語の短い要約表示へ変更済み
 
 ### Incomplete Items
 
@@ -44,7 +50,7 @@
 
 ### Next Priority
 
-- bootstrap から Notion / GitHub 反映までの実運用手順を固める
+- bootstrap から Notion / GitHub 反映までの実運用手順と apply 対象ファイル指定ルールを固める
 
 ## Active Deliverables
 
@@ -81,10 +87,10 @@
 
 ## Immediate Next Steps
 
-1. `NOTION_API_TOKEN` を使った bootstrap apply 本実行フローを確認する
-2. `GITHUB_TOKEN` を使った bootstrap apply 本実行フローを確認する
-3. `bootstrap:project` と `apply:bootstrap` の実運用手順を整理する
-4. 必要なら proposal / spec / issue-seeds / issue-creation コマンドの入力項目を拡張する
+1. Discord から `/codex-bootstrap-project` と `/codex-apply-bootstrap` の日本語短縮表示を再確認する
+2. サンプル企画 `Bootstrap Resolution Sample` を残すか、検証用として削除するか判断する
+3. Notion `Tasks` に作成された Issue #7-#10 の Project relation や補足項目を必要に応じて整える
+4. 企画テンプレートの genre / platform / audience 入力項目を実運用に合わせて拡張する
 
 ## Actionable Tasks (2026-04-21)
 
@@ -135,6 +141,7 @@
 - 2026-04-23: spec draft から Notion `Specs` page を CLI と Discord で作成できるようにする
 - 2026-04-24: 新規企画の proposal / spec / issue seeds を CLI と Discord でまとめて生成できるようにする
 - 2026-04-24: bootstrap 後の Notion / GitHub 反映を CLI と Discord でまとめて dry-run / apply できるようにする
+- 2026-04-24: `apply:bootstrap` は日付固定ではなく、タイトル一致の最新生成物または明示ファイル指定で反映できるようにする
 
 ## References
 
@@ -172,6 +179,12 @@
 - Notion `Specs` page 作成も CLI と Discord の両方から使える
 - 新規企画のブートストラップも CLI と Discord の両方から使える
 - bootstrap 後の一括反映も CLI と Discord の両方から使える
+- `apply:bootstrap` は title 指定、camelCase ファイル指定、snake_case ファイル指定で dry-run できる
+- 本実行前に Notion / GitHub の作成予定内容を preview で確認する運用にした
+- `Bootstrap Resolution Sample` の Notion Spec と GitHub Issue #7-#10 は作成済みで、`sync:tasks:dry` では #7-#10 の Notion `Tasks` 新規作成予定まで確認済み
+- GitHub Issue #7-#10 は `sync:tasks` 本実行で Notion `Tasks` に作成済み
+- Discord Bot は起動 ready まで確認済み。次は Discord クライアント側から dry-run 表示を確認する
+- Discord の bootstrap / apply bootstrap 返信は CLI 詳細ログをそのまま出さず、日本語の要約だけを返す
 - 次回は Notion `Specs` 連携と GitHub / Notion 同期まで含めた実運用を固める
 - 情報を更新するときは、先に正本が Notion / GitHub / `context.md` のどれかを確認する
 - GitHub と Notion の二重更新は避け、`Tasks` の必要項目だけを同期する

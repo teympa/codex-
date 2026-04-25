@@ -79,7 +79,7 @@ npm run dev
 - `/codex-env`: 現在の guild / channel / user ID と allowlist 設定を確認する
 - `/codex-generate-proposal`: ゲーム企画書ドラフトを生成する
 - `/codex-bootstrap-project`: proposal / spec / issue seeds をまとめて生成する
-- `/codex-apply-bootstrap`: bootstrap 済みの spec / issue seeds をまとめて反映する
+- `/codex-apply-bootstrap`: bootstrap 済みの spec / issue seeds をまとめて反映する。title から最新ファイルを探すか、ファイル名を直接指定できる
 - `/codex-generate-issue-seeds`: 企画書ドラフトから GitHub Issue 下書きを生成する
 - `/codex-generate-spec`: 企画書ドラフトから spec draft を生成する
 - `/codex-create-spec-in-notion`: spec draft から Notion `Specs` page を作成する
@@ -89,6 +89,7 @@ npm run dev
 - `/codex-sync-tasks` の `dry_run:false` は `DISCORD_SYNC_APPLY_CHANNEL_IDS` のチャンネルでだけ許可する
 - `/codex-create-spec-in-notion` の `dry_run:false` は `DISCORD_NOTION_APPLY_CHANNEL_IDS` のチャンネルでだけ許可する
 - `/codex-create-issues-from-seeds` の `dry_run:false` は `DISCORD_ISSUE_APPLY_CHANNEL_IDS` のチャンネルでだけ許可する
+- `/codex-apply-bootstrap` の `dry_run:false` は Notion と GitHub の両方に反映するため、`DISCORD_NOTION_APPLY_CHANNEL_IDS` と `DISCORD_ISSUE_APPLY_CHANNEL_IDS` の両方の条件を満たすチャンネルでだけ許可する
 
 ## Logging
 
@@ -111,6 +112,7 @@ npm run dev
 - `DISCORD_SYNC_APPLY_CHANNEL_IDS` を設定すると、`/codex-sync-tasks dry_run:false` の本実行チャンネルを限定できます
 - `DISCORD_NOTION_APPLY_CHANNEL_IDS` を設定すると、`/codex-create-spec-in-notion dry_run:false` の本実行チャンネルを限定できます
 - `DISCORD_ISSUE_APPLY_CHANNEL_IDS` を設定すると、`/codex-create-issues-from-seeds dry_run:false` の本実行チャンネルを限定できます
+- `/codex-apply-bootstrap dry_run:false` は Notion Spec 作成と GitHub Issue 作成をまとめて行うため、Notion / Issue 両方の apply channel 設定を満たす必要があります
 - 複数指定する場合は `123,456,789` のようにカンマ区切りで入れます
 - 拒否された操作は `runtime/discord-command-log.jsonl` に `access_denied` として残ります
 

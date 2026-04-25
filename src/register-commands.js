@@ -160,13 +160,25 @@ const commands = [
     .addStringOption((option) =>
       option
         .setName("title")
-        .setDescription("企画タイトル")
-        .setRequired(true)
+        .setDescription("企画タイトル。最新の spec / issue seeds を自動解決する")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("spec_file")
+        .setDescription("drafts/specs 配下の spec ファイル名")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("issue_seed_file")
+        .setDescription("drafts/issue-seeds 配下の issue seeds ファイル名")
+        .setRequired(false)
     )
     .addBooleanOption((option) =>
       option
         .setName("dry_run")
-        .setDescription("反映はせず確認だけ行う")
+        .setDescription("true は確認のみ、false は Notion / GitHub に反映")
         .setRequired(false)
     ),
   new SlashCommandBuilder()

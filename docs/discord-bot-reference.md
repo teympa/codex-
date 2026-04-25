@@ -317,7 +317,9 @@ Last updated: 2026-04-22
 
 入力:
 
-- `title` 必須
+- `title` 任意
+- `spec_file` 任意
+- `issue_seed_file` 任意
 - `dry_run` 任意
 
 例:
@@ -325,13 +327,22 @@ Last updated: 2026-04-22
 ```text
 /codex-apply-bootstrap title:Neon Courier
 /codex-apply-bootstrap title:Neon Courier dry_run:false
+/codex-apply-bootstrap spec_file:20260424-neon-courier-spec.md issue_seed_file:20260424-neon-courier-issue-seeds.md
 ```
 
 挙動:
 
 - 既定は `dry_run:true`
+- `title` だけを指定した場合は、該当タイトルの最新 spec / issue seeds を自動で探す
+- `spec_file` と `issue_seed_file` を両方指定すると、対象ファイルを固定して反映できる
 - `dry_run:true` では Notion Spec 作成 dry-run と GitHub Issue 作成 dry-run をまとめて返す
 - `dry_run:false` では両方を本実行する
+
+制限:
+
+- 指定なしでは `dry_run:true`
+- `dry_run:false` は `DISCORD_NOTION_APPLY_CHANNEL_IDS` と `DISCORD_ISSUE_APPLY_CHANNEL_IDS` の条件を満たすチャンネルでのみ使う
+- 本実行前に dry-run の preview を確認する
 
 補足:
 

@@ -190,6 +190,82 @@ function trimForDiscord(text) {
   return `${text.slice(0, MAX_DISCORD_MESSAGE - 40)}\n\n[truncated]`;
 }
 
+function getOutputValue(output, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = output.match(new RegExp(`^- ${escaped}:\\s*(.+)$`, "im"));
+  return match ? match[1].trim() : "";
+}
+
+function stripIssuePrefix(title) {
+  return title.replace(/^[^:]+:\s*/, "").trim();
+}
+
+function extractIssueTitles(output) {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .map((line) => line.match(/^- #\d+\s+(.+?)(?:\s+https?:\/\/\S+)?$/))
+    .filter(Boolean)
+    .map((match) => stripIssuePrefix(match[1]));
+}
+
+function buildBootstrapDiscordSummary(output) {
+  const proposal = getOutputValue(output, "proposal");
+  const spec = getOutputValue(output, "spec");
+  const issueSeeds = getOutputValue(output, "issue seeds");
+
+  return trimForDiscord(
+    [
+      "ブートストラップが完了しました。",
+      "",
+      "生成ファイル:",
+      proposal ? `- 企画書: ${proposal}` : null,
+      spec ? `- Spec: ${spec}` : null,
+      issueSeeds ? `- Issue下書き: ${issueSeeds}` : null,
+      "",
+      "次は内容を確認してから、`/codex-apply-bootstrap` で反映前チェックをしてください。",
+    ]
+      .filter((line) => line !== null)
+      .join("\n")
+  );
+}
+
+function buildBootstrapApplyDiscordSummary(output, dryRun) {
+  const specFile = getOutputValue(output, "spec file");
+  const issueSeedsFile = getOutputValue(output, "issue seeds file");
+  const notionTitleMatch = output.match(/^- title:\s*(.+)$/im) || output.match(/^created Notion spec:\s*(.+)$/im);
+  const notionTitle = notionTitleMatch ? notionTitleMatch[1].trim() : "";
+  const notionUrlMatch = output.match(/^https?:\/\/www\.notion\.so\/\S+$/im);
+  const notionUrl = notionUrlMatch ? notionUrlMatch[0].trim() : "";
+  const issueTitles = extractIssueTitles(output);
+
+  const lines = [
+    dryRun ? "反映前チェックが完了しました。" : "反映が完了しました。",
+    "",
+    `モード: ${dryRun ? "確認のみ" : "本実行"}`,
+    specFile ? `Spec: ${specFile}` : null,
+    issueSeedsFile ? `Issue下書き: ${issueSeedsFile}` : null,
+    "",
+    "Notion:",
+    notionTitle ? `- ${dryRun ? "作成予定" : "作成済み"}: ${notionTitle}` : "- 対象を確認しました",
+    notionUrl ? `- ${notionUrl}` : null,
+    "",
+    "GitHub:",
+    `- ${dryRun ? "作成予定 Issue" : "作成済み Issue"}: ${issueTitles.length}件`,
+    ...issueTitles.slice(0, 8).map((title) => `  - ${title}`),
+  ].filter((line) => line !== null);
+
+  if (issueTitles.length > 8) {
+    lines.push(`  - 他 ${issueTitles.length - 8}件`);
+  }
+
+  if (dryRun) {
+    lines.push("", "問題なければ `dry_run:false` で本実行できます。");
+  }
+
+  return trimForDiscord(lines.join("\n"));
+}
+
 function normalizeInstruction(text) {
   return text.trim();
 }
@@ -577,11 +653,10 @@ function canApplyBootstrapArtifacts(interaction) {
 
 function buildBootstrapApplyDeniedReply(reason) {
   return [
-    "bootstrap 後の本反映はこの条件では許可されていません。",
+    "This channel cannot run dry_run:false.",
+    "Run dry_run:true first, or use an allowed apply channel.",
     "",
     reason,
-    "",
-    "まずは `dry_run:true` で確認してください。",
   ].join("\n");
 }
 
@@ -721,6 +796,27 @@ function collectBootstrapArgs(interaction) {
   return args;
 }
 
+function collectBootstrapApplyArgs(interaction) {
+  const title = interaction.options.getString("title");
+  const specFile = interaction.options.getString("spec_file");
+  const issueSeedFile = interaction.options.getString("issue_seed_file");
+  const args = [];
+
+  if (title) {
+    args.push("--title", title);
+  }
+
+  if (specFile) {
+    args.push("--specFile", specFile);
+  }
+
+  if (issueSeedFile) {
+    args.push("--issueSeedFile", issueSeedFile);
+  }
+
+  return args;
+}
+
 async function handleProposalGeneration(interaction) {
   await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
   const title = interaction.options.getString("title", true);
@@ -804,19 +900,7 @@ async function handleProjectBootstrap(interaction) {
       resultPreview: trimForDiscord(output),
     });
 
-    await interaction.editReply(
-      trimForDiscord(
-        [
-          "新規企画のブートストラップが完了しました。",
-          "",
-          "```",
-          output,
-          "```",
-          "",
-          "次は proposal / spec / issue seeds を順に確認してください。",
-        ].join("\n")
-      )
-    );
+    await interaction.editReply(buildBootstrapDiscordSummary(output));
   } catch (error) {
     appendCommandLog({
       event: "project_bootstrap_failed",
@@ -841,8 +925,18 @@ async function handleProjectBootstrap(interaction) {
 
 async function handleBootstrapApply(interaction, dryRun) {
   await interaction.deferReply({ ephemeral: REPLY_EPHEMERAL });
-  const title = interaction.options.getString("title", true);
-  const args = ["--title", title];
+  const title = interaction.options.getString("title") || "(explicit files)";
+  const specFile = interaction.options.getString("spec_file");
+  const issueSeedFile = interaction.options.getString("issue_seed_file");
+
+  if (!interaction.options.getString("title") && !(specFile && issueSeedFile)) {
+    await interaction.editReply(
+      "title を指定するか、spec_file と issue_seed_file の両方を指定してください。"
+    );
+    return;
+  }
+
+  const args = collectBootstrapApplyArgs(interaction);
   if (!dryRun) {
     args.push("--apply");
   }
@@ -853,6 +947,8 @@ async function handleBootstrapApply(interaction, dryRun) {
     userTag: interaction.user.tag,
     channelId: interaction.channelId,
     title,
+    specFile,
+    issueSeedFile,
     dryRun,
   });
 
@@ -864,21 +960,13 @@ async function handleBootstrapApply(interaction, dryRun) {
       userTag: interaction.user.tag,
       channelId: interaction.channelId,
       title,
+      specFile,
+      issueSeedFile,
       dryRun,
       resultPreview: trimForDiscord(output),
     });
 
-    await interaction.editReply(
-      trimForDiscord(
-        [
-          dryRun ? "bootstrap 反映 dry-run が完了しました。" : "bootstrap 反映が完了しました。",
-          "",
-          "```",
-          output,
-          "```",
-        ].join("\n")
-      )
-    );
+    await interaction.editReply(buildBootstrapApplyDiscordSummary(output, dryRun));
   } catch (error) {
     appendCommandLog({
       event: "bootstrap_apply_failed",
@@ -886,6 +974,8 @@ async function handleBootstrapApply(interaction, dryRun) {
       userTag: interaction.user.tag,
       channelId: interaction.channelId,
       title,
+      specFile,
+      issueSeedFile,
       dryRun,
       error: error.message,
     });
@@ -1434,13 +1524,25 @@ const commands = [
     .addStringOption((option) =>
       option
         .setName("title")
-        .setDescription("企画タイトル")
-        .setRequired(true)
+        .setDescription("企画タイトル。最新の spec / issue seeds を自動解決する")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("spec_file")
+        .setDescription("drafts/specs 配下の spec ファイル名")
+        .setRequired(false)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("issue_seed_file")
+        .setDescription("drafts/issue-seeds 配下の issue seeds ファイル名")
+        .setRequired(false)
     )
     .addBooleanOption((option) =>
       option
         .setName("dry_run")
-        .setDescription("反映はせず確認だけ行う")
+        .setDescription("true は確認のみ、false は Notion / GitHub に反映")
         .setRequired(false)
     ),
   new SlashCommandBuilder()
